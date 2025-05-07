@@ -32,7 +32,7 @@ function Profile() {
   
     </div>
     <div className='flex items-center gap-2 justify-end my-2'>
-      <Link to={'/profile/edit'} className='px-3 py-1 border border-gray-500 rounded hover:bg-gray-800 hover:text-white'>Edit</Link>
+      <Link to={'/profile'} className='px-3 py-1 border border-gray-500 rounded hover:bg-gray-800 hover:text-white'>Edit</Link>
         
     </div>
  

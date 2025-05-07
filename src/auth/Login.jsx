@@ -28,7 +28,7 @@ function Login() {
           {loading && <h1 className='text-3xl text-gray-800'>Loading...</h1>}
           {error && <p className='text-sm text-red-500 border border-red-600 px-2 py-1 bg-red-100 rounded'>{errorMessage}  </p>}
           {admin && <p className='text-sm text-green-500 border border-green-600 px-2 py-1 bg-green-100 rounded'>Logged In successfully  </p>}
-
+          <h1 className='text-gray-800 text-3xl font-bold text-center'>COLOSSEUM Admin Panel</h1>
  <h1 className='text-gray-800 text-xl font-bold text-center'>Login</h1>
  <div className=' flex  gap-2 flex-col mb-3 border border-gray-400 p-10 rounded'>
    
