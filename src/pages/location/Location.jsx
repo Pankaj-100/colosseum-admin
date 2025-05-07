@@ -101,7 +101,7 @@ function Location() {
       title: "Actions",
       render: (_, record) => (
         <Space>
-          <Link to={`/location/edit/${record._id}`}><MdModeEdit /></Link>
+          {/* <Link to={`/location/edit/${record._id}`}><MdModeEdit /></Link> */}
           <span className="text-red-600 cursor-pointer" onClick={() => showDeleteModal(record)}><MdDelete /></span>
         </Space>
       ),
