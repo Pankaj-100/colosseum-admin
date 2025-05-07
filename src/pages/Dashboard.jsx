@@ -26,7 +26,7 @@ function Dashboard() {
           loading={loading}
         />
            <DashCard 
-          type={'users'} 
+          type={'videos'} 
           count={totalVideos}  // Pass the count directly
           icon={<CgCamera size={30} />} 
           title={'videos'}
