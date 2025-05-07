@@ -1,5 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react'; 
 import { useDispatch, useSelector } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
+import { Spin } from 'antd';
 import { 
   getUploadUrl, 
   saveVideoDetails,
@@ -26,7 +28,9 @@ const { Option } = Select;
 const { TextArea } = Input;
 
 const UploadVideo = () => {
+  const [isLoading, setIsLoading] = useState(false);
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const { uploadProgress } = useSelector(state => state.video);
   const { locations: allLocations } = useSelector(state => state.location);
   const [form] = Form.useForm();
@@ -147,6 +151,7 @@ const UploadVideo = () => {
     }
 
     try {
+      setIsLoading(true); 
       const fileName = videoFile.name;
       const fileExtension = fileName.split('.').pop();
       
@@ -210,11 +215,21 @@ const UploadVideo = () => {
       console.error('Error in video upload:', error);
       Swal.fire('Error!', 'Video upload failed. Please try again.', 'error');
     }
+    finally {
+      setIsLoading(false); // STOP LOADING
+    }
+  
   };
 
   return (
     <div className="p-6 bg-white rounded-lg shadow">
+      <div className='flex justify-between'>
       <h2 className="text-xl font-bold mb-6">Upload New Video</h2>
+      <Button type="default" onClick={() => navigate(-1)} className="bg-red-500 hover:bg-red-600">
+  ← Back
+</Button>
+      </div>
+   
       
       <Form form={form} layout="vertical" onFinish={handleSubmit}>
         <Form.Item name="title" label="Title" rules={[{ required: true }]}>
@@ -382,7 +397,16 @@ const UploadVideo = () => {
           </Form.Item>
         </Form>
       </Modal>
+      {isLoading && (
+  <div className="fixed inset-0 bg-white bg-opacity-70 z-50 flex items-center justify-center">
+    <div className="text-center">
+      <div className="spinner-border animate-spin inline-block w-8 h-8 border-4 rounded-full border-blue-500 border-t-transparent"></div>
+      <p className="mt-4 text-lg text-gray-700">Uploading, please wait...</p>
     </div>
+  </div>
+)}
+    </div>
+ 
   );
 };
 

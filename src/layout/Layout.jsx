@@ -105,14 +105,7 @@ const [lang,setLang] = useState(language)
   <BsGeoAltFill size={20} className="mr-2" />
   <span>Location</span>
 </li></Link>
-  <Link to={'/privacy_policy'}> <li className={`flex items-center mb-4 hover:bg-gray-600 p-2 rounded cursor-pointer ${nav.includes('/privacy_policy') && 'bg-gray-500' }`}>
-    <SiGnuprivacyguard    size={20} className="mr-2" /> {/* Add margin-right to space the icon */}
-    <span>Privacy Policy</span>
-  </li></Link>
-  <Link to={'/terms_conditions'}> <li className={`flex items-center mb-4 hover:bg-gray-600 p-2 rounded cursor-pointer ${nav.includes('/terms_conditions') && 'bg-gray-500' }`}>
-    <BsFileEarmarkRuled   size={20} className="mr-2" /> {/* Add margin-right to space the icon */}
-    <span>Terms & Conditions</span>
-  </li></Link>
+
 
   
         </ul>
