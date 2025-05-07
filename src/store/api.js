@@ -78,7 +78,7 @@ export const getUsers = async (dispatch,search,token)=>{
      dispatch(fetchingUser())
      const {data} = await axiosInstance.get(`api/admin/get_AllUsers?search=${search}`);
 
- 
+     
      dispatch(userFetched(data))
   } catch (error) {
     Swal.fire('Opps!',error?.response?.data?.message,'error')
