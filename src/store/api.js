@@ -56,7 +56,7 @@ export  const login = async ( dispatch,admin)=>{
        window.location.href = '/dashboard'
    
   } catch (error) {
-    Swal.fire('Opps!',error?.response?.data?.message,'error')
+   // Swal.fire('Opps!',error?.response?.data?.message,'error')
     dispatch(loginError(error?.response?.data))
   }
  
@@ -68,7 +68,7 @@ export const getDashboard = async (dispatch) => {
     const { data } = await axiosInstance.get('api/admin/getDashboardData')
     dispatch(fetchedDashboard(data))  
   } catch (error) {
-    Swal.fire('Opps!', error?.response?.data?.message, 'error')
+   // Swal.fire('Opps!', error?.response?.data?.message, 'error')
     dispatch(errorDashboard(error?.response?.data))
   }
 }
