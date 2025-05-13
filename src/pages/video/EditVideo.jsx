@@ -137,7 +137,7 @@ function EditVideo() {
                         </Select>
                     </Form.Item>
                     
-                    <div className="grid grid-cols-3 gap-4">
+                  {/* <div className="grid grid-cols-3 gap-4">
                         <Form.Item label="Hours">
                             <Input
                                 type="number"
@@ -164,7 +164,7 @@ function EditVideo() {
                                 onChange={(e) => handleDurationChange('seconds', e.target.value)}
                             />
                         </Form.Item>
-                    </div>
+                    </div> */}
                 </Form>
             </Modal>
         </Layout>

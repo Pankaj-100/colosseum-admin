@@ -99,7 +99,7 @@ const [lang,setLang] = useState(language)
 
 <Link to={'/codes'}><li className={`flex items-center mb-4 hover:bg-gray-600 p-2 rounded cursor-pointer ${nav.includes('/codes') && 'bg-gray-500'}`}>
   <BsLockFill size={20} className="mr-2" />
-  <span>code</span>
+  <span>Code</span>
 </li></Link>
 <Link to={'/location'}><li className={`flex items-center mb-4 hover:bg-gray-600 p-2 rounded cursor-pointer ${nav.includes('/location') && 'bg-gray-500'}`}>
   <BsGeoAltFill size={20} className="mr-2" />

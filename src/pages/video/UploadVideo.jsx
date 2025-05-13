@@ -156,12 +156,12 @@ const UploadVideo = () => {
       const fileExtension = fileName.split('.').pop();
       
       const uploadData = await getUploadUrl(dispatch, fileExtension);
-
+console.log("1")
       await fetch(uploadData.uploadURL, {
         method: "PUT",
         body: videoFile
       });
-
+console.log("2")
       const cleanUrl = new URL(uploadData.uploadURL);
       cleanUrl.search = "";
       const stringUrl = cleanUrl.toString();
@@ -177,7 +177,7 @@ const UploadVideo = () => {
         thumbnailUrl.search = "";
         thumburl = thumbnailUrl.toString();
       }
-
+console.log("3")
       // Prepare primary location data
     
     
@@ -200,9 +200,9 @@ const UploadVideo = () => {
           }))
         }
       };
-
+console.log("4")
       await saveVideoDetails(dispatch, videoData);
-
+console.log("5")
       form.resetFields();
       setVideoFile(null);
       setThumbnailFile(null);
