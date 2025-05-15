@@ -1,49 +1,105 @@
-import { Input } from 'antd'
-import TextArea from 'antd/es/input/TextArea'
-import React, { useEffect, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import { login } from '../store/api'
-import { useDispatch, useSelector } from 'react-redux'
-import Spinner from '../component/Spinner'
+import { Input, message } from 'antd';
+import React, { useEffect, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { login } from '../store/api';
+import { useDispatch, useSelector } from 'react-redux';
+import Spinner from '../component/Spinner';
 
 function Login() {
-  const [email,setEmail] = useState('');
-  const [password,setPassword] = useState('')
-  const dispatch = useDispatch()
-  const error = useSelector(state=>state.auth.error);
-  const errorMessage = useSelector(state=>state.auth.errorMessage);
-  const loading = useSelector(state=>state.auth.loading);
-  const admin = useSelector(state=>state.auth.admin)
-  const user = localStorage.getItem('admin')
-  const navigate = useNavigate()
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [touched, setTouched] = useState(false);
+  const [emailValid, setEmailValid] = useState(true);
 
-  useEffect(()=>{
-    if(user){
-      navigate('/dashboard')
-   }
-  },[admin])
+  const dispatch = useDispatch();
+  const { error, errorMessage, loading, admin } = useSelector((state) => state.auth);
+  const user = localStorage.getItem('admin');
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (user || admin) {
+      navigate('/dashboard');
+    }
+  }, [admin]);
+
+  const validateEmail = (email) =>
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+
+  const handleLogin = () => {
+    setTouched(true);
+    const isValidEmail = validateEmail(email);
+    setEmailValid(isValidEmail);
+
+    if (!email || !password || !isValidEmail) return;
+
+    login(dispatch, { email, password });
+  };
+
+  const emailError = (!email || !emailValid) && touched;
+  const passwordError = !password && touched;
+
+  // Display error toast from backend error
+  useEffect(() => {
+    if (error && errorMessage) {
+      message.error(errorMessage); // Show error message as toast
+    }
+  }, [error, errorMessage]);
+
   return (
-    
-        <div className='  mx-auto my-20 flex justify-center items-center flex-col gap-2  '>
-          {loading && <h1 className='text-3xl text-gray-800'>Loading...</h1>}
-          {error && <p className='text-sm text-red-500 border border-red-600 px-2 py-1 bg-red-100 rounded'>{errorMessage}  </p>}
-          {admin && <p className='text-sm text-green-500 border border-green-600 px-2 py-1 bg-green-100 rounded'>Logged In successfully  </p>}
-          <h1 className='text-gray-800 text-3xl font-bold text-center'>COLOSSEUM Admin Panel</h1>
- <h1 className='text-gray-800 text-xl font-bold text-center'>Login</h1>
- <div className=' flex  gap-2 flex-col mb-3 border border-gray-400 p-10 rounded'>
-   
-   <Input placeholder='Enter email' onChange={(e)=>setEmail(e.target.value)} type='text'/>
-   <Input placeholder='Enter password' onChange={(e)=>setPassword(e.target.value)} type='text'/>
-   <div className='flex justify-between'>
-   
-   <button onClick={()=>login(dispatch,{email,password})} className='border border-gray-300 center rounded w-16 hover:bg-gray-700 hover:text-white'>{loading ? <Spinner size={20}/>: 'Login'}</button>
-   <Link className='text-xs hover:text-blue-400'>forget password</Link>
-   </div>
-   
- </div>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-100 via-white to-gray-200 px-4">
+      <div className="w-full max-w-md bg-white p-8 rounded-2xl shadow-xl">
+        <div className="mb-6 text-center">
+          <h1 className="text-3xl font-bold text-gray-800">COLOSSEUM Admin</h1>
+          <p className="text-sm text-gray-500 mt-1">Login to manage the platform</p>
         </div>
-    
-  )
+
+        <div className="space-y-5">
+          <div>
+            <Input
+              placeholder="Email"
+              type="email"
+              size="large"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              status={emailError ? 'error' : ''}
+            />
+            {emailError && (
+              <p className="text-red-500 text-xs mt-1">
+                {email ? 'Enter a valid email address' : 'Email is required'}
+              </p>
+            )}
+          </div>
+
+          <div>
+            <Input.Password
+              placeholder="Password"
+              size="large"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              status={passwordError ? 'error' : ''}
+            />
+            {passwordError && (
+              <p className="text-red-500 text-xs mt-1">Password is required</p>
+            )}
+          </div>
+
+          <button
+            onClick={handleLogin}
+            className="w-full bg-black text-white py-2 rounded-md hover:bg-gray-800 transition duration-150 font-semibold text-sm"
+            disabled={loading}
+          >
+            {loading ? <Spinner size={20} /> : 'Login'}
+          </button>
+
+          <div className="text-right">
+            <Link className="text-sm text-blue-500 hover:underline" to="#">
+              Forgot password?
+            </Link>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }
 
-export default Login
+export default Login;

@@ -136,7 +136,7 @@ const [lang,setLang] = useState(language)
           </button>
       
        <div className='flex justify-end items-center'>
-        <h1 className='border border-gry-300 text-white px-2 py-0 mr-3 rounded cursor-pointer' onClick={langChange}>{lang == 'en' ? 'English':'Spanish'}</h1>
+        {/* <h1 className='border border-gry-300 text-white px-2 py-0 mr-3 rounded cursor-pointer' onClick={langChange}>{lang == 'en' ? 'English':'Spanish'}</h1> */}
           {/* <h1 className='text-white mr-3'>{user.name}</h1> */}
           <Link to={'/profile'}>
           

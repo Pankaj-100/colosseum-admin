@@ -113,7 +113,6 @@ function Location() {
       <div className="flex justify-between items-center mx-3 mb-3">
         <h1 className="text-xl font-bold text-gray-500">Locations</h1>
         <div className="flex gap-3">
-          <SearchBar placeholder="Search by location name" type="location" />
           <Button type="primary" onClick={() => setAddModalOpen(true)}>Add Location</Button>
         </div>
       </div>

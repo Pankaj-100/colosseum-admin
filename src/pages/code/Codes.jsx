@@ -2,23 +2,22 @@ import React, { useEffect, useState } from "react";
 import Layout from "../../layout/Layout";
 import { useDispatch, useSelector } from "react-redux";
 import { Table, Select, Space, Modal, Button, InputNumber } from "antd";
-import { FiEye } from "react-icons/fi";
 import { MdDelete } from "react-icons/md";
 import {
   getActiveCodes,
   generateCodes,
   revokeCode,
 } from "../../store/api";
-import SearchBar from "../../component/SearchBar";
 import Swal from "sweetalert2";
 
 function Codes() {
   const dispatch = useDispatch();
-  const { codes, loading, count, search } = useSelector((state) => state.code);
+  const { codes, loading, count } = useSelector((state) => state.code);
   const [pageSize, setPageSize] = useState(5);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [codeToRevoke, setCodeToRevoke] = useState(null);
   const [generateCount, setGenerateCount] = useState(1);
+  const [validityDays, setValidityDays] = useState(1);
 
   useEffect(() => {
     getActiveCodes(dispatch);
@@ -26,7 +25,13 @@ function Codes() {
 
   const handleGenerate = async () => {
     if (!generateCount || generateCount < 1) return Swal.fire("Invalid count");
-    await generateCodes(dispatch, { count: generateCount });
+    if (!validityDays || validityDays < 1)
+      return Swal.fire("Validity must be at least 1 day");
+
+    await generateCodes(dispatch, {
+      count: generateCount,
+      validityDays,
+    });
     getActiveCodes(dispatch);
   };
 
@@ -34,9 +39,6 @@ function Codes() {
     await revokeCode(dispatch, codeToRevoke);
     getActiveCodes(dispatch);
     setIsModalOpen(false);
-   
-     
-   
   };
 
   const columns = [
@@ -55,6 +57,18 @@ function Codes() {
       dataIndex: "createdAt",
       key: "createdAt",
       render: (text) => new Date(text).toLocaleString(),
+    },
+    {
+      title: "Valid From",
+      dataIndex: "validFrom",
+      key: "validFrom",
+      render: (text) => new Date(text).toLocaleDateString(),
+    },
+    {
+      title: "Valid Till",
+      dataIndex: "validTill",
+      key: "validTill",
+      render: (text) => new Date(text).toLocaleDateString(),
     },
     {
       title: "Action",
@@ -83,19 +97,36 @@ function Codes() {
     <Layout>
       <div className="flex justify-between items-center m-3">
         <h1 className="text-xl font-bold text-gray-600">Activation Codes</h1>
-        <SearchBar type="code" placeholder="Search code..." />
       </div>
 
-      <div className="flex items-center gap-4 mb-4 mx-3">
-        <InputNumber
-          min={1}
-          value={generateCount}
-          onChange={(val) => setGenerateCount(val)}
-          placeholder="Number of codes"
-        />
-        <Button type="primary" onClick={handleGenerate}>
-          Generate Codes
-        </Button>
+      <div className="flex items-center gap-6 mb-4 mx-3">
+        <div className="flex flex-col">
+          <label className="text-gray-700 text-sm font-medium mb-1">
+            Number of Codes
+          </label>
+          <InputNumber
+            min={1}
+            value={generateCount}
+            onChange={(val) => setGenerateCount(val)}
+            placeholder="e.g. 10"
+          />
+        </div>
+        <div className="flex flex-col">
+          <label className="text-gray-700 text-sm font-medium mb-1">
+            Validity (Days)
+          </label>
+          <InputNumber
+            min={1}
+            value={validityDays}
+            onChange={(val) => setValidityDays(val)}
+            placeholder="e.g. 30"
+          />
+        </div>
+        <div className="pt-5">
+          <Button type="primary" onClick={handleGenerate}>
+            Generate Codes
+          </Button>
+        </div>
       </div>
 
       <Table

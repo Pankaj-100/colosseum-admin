@@ -5,7 +5,7 @@ import { Spin } from 'antd';
 import { 
   getUploadUrl, 
   saveVideoDetails,
-  initiateMultipartUpload,
+ 
   getLocations
 } from '../../store/api';
 import { 
@@ -246,6 +246,9 @@ console.log("5")
             <Option value="Spanish">Spanish</Option>
             <Option value="French">French</Option>
             <Option value="German">German</Option>
+             <Option value="Italian">Italian</Option>
+                <Option value="Arabic">Arabic</Option>
+        
           </Select>
         </Form.Item>
 

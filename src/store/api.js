@@ -39,28 +39,27 @@ import {  fetchingVideos,fetchVideoById,
 
 
 
-export  const login = async ( dispatch,admin)=>{
+export const login = async (dispatch, admin) => {
+  const { email, password } = admin;
+  dispatch(startLogin());
 
-   const {email,password} = admin;
-  dispatch(startLogin())
- 
- 
   try {
-   
-      const {data} = await axiosInstance.post('api/admin/login',{email,password})
-      dispatch(setUser(data))
-      dispatch(setToken(data))
-       localStorage.setItem('token',JSON.stringify(data.token));
-       localStorage.setItem('admin',JSON.stringify(data.user))
-       console.log(data,'data');
-       window.location.href = '/dashboard'
-   
+    const { data } = await axiosInstance.post('api/admin/login', { email, password });
+    dispatch(setUser(data)); // If login is successful
+    dispatch(setToken(data));
+    localStorage.setItem('token', JSON.stringify(data.token));
+    localStorage.setItem('admin', JSON.stringify(data.user));
+    window.location.href = '/dashboard'; // Redirect on successful login
   } catch (error) {
-   // Swal.fire('Opps!',error?.response?.data?.message,'error')
-    dispatch(loginError(error?.response?.data))
-  }
+    // Ensure the backend sends an appropriate error response
  
-}
+    
+    const errorMessage = error?.response?.data?.error?.message || 'Login failed';
+    dispatch(loginError({ message: errorMessage }));
+  }
+};
+
+
 
 export const getDashboard = async (dispatch) => {
   try {
@@ -170,7 +169,9 @@ export const getUploadUrl = async (dispatch, fileExtension) => {
 export const saveVideoDetails = async (dispatch, videoData) => {
   try {
     dispatch(startUpload());
+    console.log("55")
     const { data } = await axiosInstance.post('api/video/save', videoData);
+      console.log("55")
     Swal.fire('Success!', 'Video saved successfully', 'success');
     dispatch(uploadComplete());
     dispatch(resetUploadState());
