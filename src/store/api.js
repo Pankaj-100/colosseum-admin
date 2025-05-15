@@ -253,7 +253,7 @@ export const deleteLocation = async (dispatch, id) => {
 export const getActiveCodes = async (dispatch, search = "") => {
   try {
     dispatch(fetchingCodes());
-    const { data } = await axiosInstance.get(`api/code/active?search=${search}`);
+    const { data } = await axiosInstance.get(`api/code/active`);
     dispatch(fetchedCodes({ codes: data.codes, count: data.count }));
   } catch (error) {
     Swal.fire("Oops!", error?.response?.data?.message, "error");
