@@ -144,7 +144,7 @@ const VideosList = () => {
       <div className="flex justify-between items-center mx-3 mb-4">
   <h1 className="text-xl font-bold text-gray-500">Videos</h1>
   <div className="flex items-center">
-    <SearchBar placeholder="Search by title" type={'video'} />
+   {/* <SearchBar placeholder="Search by title" type={'video'} /> */}
     <Link
       to="/videos/upload"
       className="ml-4 bg-lime-500 text-dark px-4 py-2 rounded-md text-sm font-medium transition-colors"

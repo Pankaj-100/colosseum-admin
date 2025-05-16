@@ -25,6 +25,7 @@ axiosInstance.interceptors.request.use(
     
     if (token) {
       const token1 = JSON.parse(token)
+      console.log(token)
       config.headers['Authorization'] = token1; 
     }
     return config; 
