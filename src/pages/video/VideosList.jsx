@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { getVideos } from '../../store/api';
-import { Table, Image, Modal, Select, Space, Tag } from 'antd';
+import { Table, Image, Modal, Select, Space, Tag, Input } from 'antd';
 import { Link, useNavigate } from 'react-router-dom';
 import { MdDelete, MdModeEdit } from "react-icons/md";
 import { FiEye } from "react-icons/fi";
@@ -9,9 +9,39 @@ import Layout from '../../layout/Layout';
 import SearchBar from '../../component/SearchBar';
 import Skeleton from 'react-loading-skeleton';
 import Swal from 'sweetalert2';
-import axiosInstance from '../../utils/axios';
+import axios from "axios";
+import axiosInstance from '../../utils/axios'; // update path as needed
+
 
 const VideosList = () => {
+  const [locations, setLocations] = useState([]);
+  const [languages, setLanguages] = useState([]);
+  const [searchName, setSearchName] = useState('');
+  const [selectedLanguage, setSelectedLanguage] = useState(null);
+  const [selectedLocation, setSelectedLocation] = useState(null);
+  const [filteredVideos, setFilteredVideos] = useState([]);
+
+  useEffect(() => {
+    const fetchLocations = async () => {
+      try {
+        const { data } = await axios.get('https://colosseum-backend.onrender.com/api/location'); 
+        setLocations(data.locations); 
+      } catch (error) {
+        console.error("Failed to fetch locations:", error);
+      }
+    };
+
+
+
+    fetchLocations();
+
+  }, []);
+
+  const getLocationNameById = (id) => {
+    const location = locations.find(loc => loc._id === id);
+    return location?.name || 'Unknown Location';
+  };
+
   const [pageSize, setPageSize] = useState(5);
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -22,6 +52,27 @@ const VideosList = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [video, setVideo] = useState({});
   const { search } = useSelector(state => state.video);
+
+  // Apply filters whenever searchName, selectedLanguage, selectedLocation or videos change
+  useEffect(() => {
+    let result = videos;
+    
+    if (searchName) {
+      result = result.filter(video => 
+        video.title.toLowerCase().includes(searchName.toLowerCase())
+      );
+    }
+    
+    if (selectedLanguage) {
+      result = result.filter(video => video.language === selectedLanguage);
+    }
+    
+    if (selectedLocation) {
+      result = result.filter(video => video.primaryLocation === selectedLocation);
+    }
+    
+    setFilteredVideos(result);
+  }, [searchName, selectedLanguage, selectedLocation, videos]);
 
   const columns = [
     {
@@ -67,6 +118,18 @@ const VideosList = () => {
       )
     },
     {
+      title: 'Primary Location',
+      dataIndex: 'primaryLocation',
+      key: 'primaryLocation',
+      render: (locationId) => (
+        <div>
+          <p className="text-xs text-gray-500">
+            {getLocationNameById(locationId)}
+          </p>
+        </div>
+      )
+    },
+    {
       title: 'Duration',
       key: 'duration',
       render: (_, record) => (
@@ -105,10 +168,9 @@ const VideosList = () => {
   const showModal = async (id) => {
     setIsModalOpen(true);
     try {
-      console.log(id)
       const { data } = await axiosInstance.get(`api/video/${id}`);
       setVideoId(data.video);
-        setVideoId(id);
+      setVideoId(id);
     } catch (error) {
       Swal.fire('Opps!', error?.response?.data);
     }
@@ -140,27 +202,98 @@ const VideosList = () => {
 
   return (
     <Layout>
-      
       <div className="flex justify-between items-center mx-3 mb-4">
-  <h1 className="text-xl font-bold text-gray-500">Videos</h1>
-  <div className="flex items-center">
-   {/* <SearchBar placeholder="Search by title" type={'video'} /> */}
-    <Link
-      to="/videos/upload"
-      className="ml-4 bg-lime-500 text-dark px-4 py-2 rounded-md text-sm font-medium transition-colors"
-    >
-      Upload Video
-    </Link>
-  </div>
+        <h1 className="text-xl font-bold text-gray-500">Videos</h1>
+        <div className="flex items-center">
+          <Link
+            to="/videos/upload"
+            className="ml-4 bg-lime-500 text-dark px-4 py-2 rounded-md text-sm font-medium transition-colors"
+          >
+            Upload Video
+          </Link>
+        </div>
+      </div>
+
+      {/* Search and Filter Section */}
+      <div className="mx-3 mb-4 p-4 bg-white rounded shadow">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Search by Name</label>
+            <Input
+              placeholder="Search video by title"
+              value={searchName}
+              onChange={(e) => setSearchName(e.target.value)}
+            />
+          </div>
+          
+       <div>
+  <label className="block text-sm font-medium text-gray-700 mb-1">
+    Filter by Language
+  </label>
+  <Select
+    style={{ width: '100%' }}
+    placeholder="Select language"
+    allowClear
+     value={selectedLanguage}
+    onChange={(value) => setSelectedLanguage(value)}
+  >
+    <Select.Option value="English">English</Select.Option>
+    <Select.Option value="Spanish">Spanish</Select.Option>
+    <Select.Option value="French">French</Select.Option>
+    <Select.Option value="German">German</Select.Option>
+    <Select.Option value="Italian">Italian</Select.Option>
+    <Select.Option value="Arabic">Arabic</Select.Option>
+    <Select.Option value="Chinese">Chinese</Select.Option>
+    <Select.Option value="Japanese">Japanese</Select.Option>
+    <Select.Option value="Korean">Korean</Select.Option>
+  </Select>
 </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Filter by Location</label>
+            <Select
+              style={{ width: '100%' }}
+              placeholder="Select location"
+              allowClear
+              value={selectedLocation}
+              onChange={(value) => setSelectedLocation(value)}
+            >
+              {locations.map(loc => (
+                <Select.Option key={loc._id} value={loc._id}>
+                  {loc.name}
+                </Select.Option>
+              ))}
+            </Select>
+          </div>
+          
+          <div className="flex items-end">
+            <button
+              className="bg-gray-200 hover:bg-gray-300 px-4 py-2 rounded"
+              onClick={() => {
+                setSearchName('');
+                setSelectedLanguage(null);
+                setSelectedLocation(null);
+              }}
+            >
+              Reset Filters
+            </button>
+          </div>
+        </div>
+      </div>
+
       <div className="">
         {loading ? <Skeleton count={13} height={30} /> : 
           <>
             <Table 
               columns={columns} 
-              dataSource={videos.map((item, index) => ({ ...item, key: item.id || index }))} 
+              dataSource={filteredVideos.map((item, index) => ({ ...item, key: item.id || index }))} 
               rowKey="key" 
-              pagination={{pageSize: pageSize, pageSizeOptions: [5,10,15,20], total: count}}
+              pagination={{
+                pageSize: pageSize, 
+                pageSizeOptions: [5,10,15,20], 
+                total: filteredVideos.length,
+                showTotal: (total) => `Total ${total} items`
+              }}
             />
             <Select
               defaultValue={pageSize}

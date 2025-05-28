@@ -7,8 +7,8 @@ import { fetchingUser, fetchUserById, userError, userFetched } from './userSlice
 import { LiaDiaspora } from 'react-icons/lia';
 import Swal from 'sweetalert2';
 import { useNavigate } from 'react-router-dom';
-import { fetchedPrivacy, fetchingPrivacy, privacyError } from './privacySlice';
-import { fetchedTerms, fetchingTerms, termsError } from './termsConditionsSlice';
+
+import { fetchedTerms, fetchingTerms, termsError,fetchedTermByLanguage ,fetchedTermById,termDeleted,termSaved } from './termsConditionsSlice';
 import {  fetchingVideos,fetchVideoById,
   fetchedVideos,
   videoError,
@@ -96,29 +96,6 @@ export const getUserDetails =async (dispatch,id)=>{
   }
 }
 
-export const getPrivacy = async (dispatch)=>{
-  try {
-     dispatch(fetchingPrivacy())
-     const {data} = await axiosInstance.get('/privacy-policy')
-     dispatch(fetchedPrivacy(data))
-  } catch (error) {
-   Swal.fire('Opps!',error?.response?.data?.message,'error')
-
-    dispatch(privacyError(error?.response?.data))
-  }
-}
-
-export const getTerms = async (dispatch)=>{
-  try {
-     dispatch(fetchingTerms())
-     const {data} = await axiosInstance.get('/terms-conditions')
-     dispatch(fetchedTerms(data))
-  } catch (error) {
-   Swal.fire('Opps!',error?.response?.data?.message,'error')
-
-    dispatch(termsError(error?.response?.data))
-  }
-}
 
 // Video API functions
 export const getVideos = async (dispatch) => {
@@ -289,4 +266,92 @@ export const revokeCode = async (dispatch, plainCode) => {
 };
 
 
+// Terms & Conditions API functions (updated to match other APIs)
+export const fetchAllTerms = async (dispatch) => {
+  try {
+    dispatch(fetchingTerms());
+    const { data } = await axiosInstance.get('api/terms');
+    dispatch(fetchedTerms(data));
+  } catch (error) {
+    Swal.fire('Error!', error?.response?.data?.message || 'Failed to fetch terms', 'error');
+    dispatch(termsError(error?.response?.data));
+  }
+};
+export const createTerm = async (termData, dispatch) => {
+  try {
+
+    dispatch(fetchingTerms());
+    const { data } = await axiosInstance.post('api/terms', termData);
+    
+    console.log("heelo");
+    
+    if (!data.success) {
+   
+      throw new Error(data.message);
+    }
+    
+    dispatch(termSaved(data.data));
+    Swal.fire('Success!', 'Terms created successfully', 'success');
+    return data.data;
+    
+  } catch (error) {
+   
+    Swal.fire('Error!', error.response.data.message || 'Failed to create terms', 'error');
+    dispatch(termsError(error.response.data.message));
+    throw error;
+  }
+};
+
+export const getTermById = async (id,dispatch) => {
+  try {
+    dispatch(fetchingTerms());
+    const { data } = await axiosInstance.get(`api/terms/${id}`);
+    dispatch(fetchedTermById(data));
+    return data;
+  } catch (error) {
+    Swal.fire('Error!', error?.response?.data?.message || 'Failed to fetch term', 'error');
+    dispatch(termsError(error?.response?.data));
+    throw error;
+  }
+};
+
+export const updateTerm = async ( id, termData,dispatch) => {
+  try {
+    dispatch(fetchingTerms());
+    const { data } = await axiosInstance.put(`api/terms/${id}`, termData);
+    dispatch(fetchedTermById(data));
+    Swal.fire('Success!', 'Terms updated successfully', 'success');
+    return data;
+  } catch (error) {
+    Swal.fire('Error!', error?.response?.data?.message || 'Failed to update terms', 'error');
+    dispatch(termsError(error?.response?.data));
+    throw error;
+  }
+};
+
+export const deleteTerm = async ( id,dispatch) => {
+  try {
+    dispatch(fetchingTerms());
+    await axiosInstance.delete(`api/terms/${id}`);
+    dispatch(termDeleted(id));
+    Swal.fire('Success!', 'Terms deleted successfully', 'success');
+  } catch (error) {
+    Swal.fire('Error!', error?.response?.data?.message || 'Failed to delete terms', 'error');
+    dispatch(termsError(error?.response?.data));
+    throw error;
+  }
+};
+
+export const getTermByLanguage = async ( language,dispatch) => {
+  try {
+    dispatch(fetchingTerms());
+    const { data } = await axiosInstance.get(`api/terms/language/${language}`);
+    dispatch(fetchedTermByLanguage(data));
+    return data;
+  } catch (error) {
+    Swal.fire('Error!', error?.response?.data?.message || 'Failed to fetch terms by language', 'error');
+    dispatch(termsError(error?.response?.data));
+    throw error;
+  }
+};
 

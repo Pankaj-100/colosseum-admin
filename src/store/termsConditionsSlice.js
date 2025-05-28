@@ -1,29 +1,66 @@
 import { createSlice } from "@reduxjs/toolkit";
 
-const initialState ={
-    content:'',
-    error:false,
-    loading:false,
-    errorMessage:''
+const initialState = {
+  terms: [],             // list of all terms
+  singleTerm: null,      // for view/edit specific term
+  loading: false,
+  error: false,
+  errorMessage: '',
+};
 
-}
+
 const termsSlice = createSlice({
-    initialState,
-    name:'terms',
-    reducers:{
-        fetchingTerms:(state,action)=>{
-            state.loading = true
-        },
-        fetchedTerms:(state,action)=>{
-            state.loading = false,
-            state.content =  action.payload?.content?.content
-        },
-        termsError:(state,action)=>{
-            state.error = true,
-            state.errorMessage = action.payload?.message
-        }
-    }
-})
+  name: 'terms',
+  initialState,
+  reducers: {
+    fetchingTerms: (state) => {
+      state.loading = true;
+      state.error = false;
+      state.errorMessage = '';
+    },
+    fetchedTerms: (state, action) => {
+      state.loading = false;
+      state.terms = action.payload;
+    },
+    fetchedTermByLanguage: (state, action) => {
+      state.loading = false;
+      state.singleTerm = action.payload;
+    },
+termSaved: (state, action) => {
+  state.loading = false;
+  const updatedTerm = action.payload;
+  const index = state.terms.findIndex(t => t._id === updatedTerm._id);
+  if (index !== -1) {
+    state.terms[index] = updatedTerm;
+  } else {
+    // Add new term to the beginning of the array
+    state.terms = [updatedTerm, ...state.terms];
+  }
+},
+    termDeleted: (state, action) => {
+      state.loading = false;
+      state.terms = state.terms.filter(t => t._id !== action.payload);
+    },
+    termsError: (state, action) => {
+      state.loading = false;
+      state.error = true;
+      state.errorMessage = action.payload?.message || 'Something went wrong';
+    },
+    fetchedTermById: (state, action) => {
+  state.loading = false;
+  state.singleTerm = action.payload;
+}
+  },
+});
 
-export const {fetchedTerms,fetchingTerms,termsError} = termsSlice.actions;
-export default   termsSlice.reducer
+export const {
+  fetchingTerms,
+  fetchedTerms,
+  fetchedTermByLanguage,
+  termSaved,
+  termDeleted,
+  fetchedTermById,
+  termsError
+} = termsSlice.actions;
+
+export default termsSlice.reducer;

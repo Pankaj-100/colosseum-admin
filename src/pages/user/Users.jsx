@@ -116,9 +116,9 @@ function Users() {
  useEffect(()=>{
   // getUserDetails(dispatch,userId)
  },[user])
-   useEffect(()=>{
-    getUsers(dispatch,search)
-   },[])
+useEffect(() => {
+  getUsers(dispatch, '', token); // Also pass token if required
+}, [search]);
   return (
     <Layout>
    <div className="flex justify-between items-center mx-3 mb-1">

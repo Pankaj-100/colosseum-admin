@@ -1,52 +1,82 @@
-import React, { useState, useRef, useEffect } from 'react'; 
+import React, { useState, useRef, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { Spin } from 'antd';
-import { 
-  getUploadUrl, 
+import {
+  getUploadUrl,
   saveVideoDetails,
- 
   getLocations
 } from '../../store/api';
-import { 
-  Button, 
-  Form, 
-  Input, 
-  Upload, 
-  Progress, 
-  Select, 
+import {
+  Button,
+  Form,
+  Input,
+  Upload,
+  Progress,
+  Select,
   Space,
   Switch,
   InputNumber,
   Modal,
-  Radio
+  Radio,
+  AutoComplete
 } from 'antd';
 import { UploadOutlined, PlusOutlined, DeleteOutlined } from '@ant-design/icons';
 import Swal from 'sweetalert2';
+import { LoadScript, GoogleMap, MarkerF, CircleF } from '@react-google-maps/api';
 
 const { Option } = Select;
 const { TextArea } = Input;
 
+const mapContainerStyle = {
+  width: '100%',
+  height: '400px'
+};
+
+const center = {
+  lat: 41.8902,
+  lng: 12.4922
+};
+
+const libraries = ['places'];
+
 const UploadVideo = () => {
   const [isLoading, setIsLoading] = useState(false);
+  const [thumbnailError, setThumbnailError] = useState("");
+  const [mapLoadError, setMapLoadError] = useState(false);
+  const [mapLoaded, setMapLoaded] = useState(false);
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { uploadProgress } = useSelector(state => state.video);
   const { locations: allLocations } = useSelector(state => state.location);
   const [form] = Form.useForm();
   const [videoFile, setVideoFile] = useState(null);
+const [videoError, setVideoError] = useState('');
   const [thumbnailFile, setThumbnailFile] = useState(null);
   const [duration, setDuration] = useState({ hours: 0, minutes: 0, seconds: 0 });
-  const [isGeolocationEnabled, setIsGeolocationEnabled] = useState(false);
+  const [isGeolocationEnabled, setIsGeolocationEnabled] = useState(true);
   const [locations, setLocations] = useState([]);
   const [primaryLocation, setPrimaryLocation] = useState(null);
   const [isMapModalVisible, setIsMapModalVisible] = useState(false);
-  const [currentLocation, setCurrentLocation] = useState(null);
+  const [currentLocation, setCurrentLocation] = useState({
+    locationName: '',
+    coordinates: [12.4922, 41.8902],
+    radius: 100
+  });
+  const [mapCenter, setMapCenter] = useState(center);
+  const [searchResults, setSearchResults] = useState([]);
   const uploadRef = useRef(null);
+  const mapRef = useRef(null);
+  const searchInputRef = useRef(null);
 
   useEffect(() => {
-    // Fetch all locations when component mounts
     getLocations(dispatch);
+    
+    return () => {
+      if (mapRef.current) {
+        mapRef.current = null;
+      }
+    };
   }, [dispatch]);
 
   const handleVideoChange = (info) => {
@@ -89,7 +119,6 @@ const UploadVideo = () => {
     setIsGeolocationEnabled(checked);
     if (!checked) {
       setLocations([]);
-      // Clear primary location if it was a custom location
       if (primaryLocation && typeof primaryLocation === 'string' && primaryLocation.startsWith('custom-')) {
         setPrimaryLocation(null);
       }
@@ -98,19 +127,31 @@ const UploadVideo = () => {
 
   const showMapModal = (index = null) => {
     if (index !== null) {
-      setCurrentLocation({ ...locations[index], index });
+      const loc = locations[index];
+      setCurrentLocation({ ...loc, index });
+      setMapCenter({
+        lat: loc.coordinates[1],
+        lng: loc.coordinates[0]
+      });
     } else {
       setCurrentLocation({
         locationName: '',
-        coordinates: [0, 0],
-        radius: 1000,
+        coordinates: [12.4922, 41.8902],
+        radius: 100,
+        index: null
       });
+      setMapCenter(center);
     }
     setIsMapModalVisible(true);
   };
 
   const handleMapOk = () => {
-    if (currentLocation.index !== undefined) {
+    if (!currentLocation.locationName) {
+      Swal.fire('Error!', 'Please enter a location name', 'error');
+      return;
+    }
+
+    if (currentLocation.index !== undefined && currentLocation.index !== null) {
       const updatedLocations = [...locations];
       updatedLocations[currentLocation.index] = currentLocation;
       setLocations(updatedLocations);
@@ -131,16 +172,107 @@ const UploadVideo = () => {
     newLocations.splice(index, 1);
     setLocations(newLocations);
     
-    // If the deleted location was set as primary, clear the primary location
     if (primaryLocation === `custom-${index}`) {
       setPrimaryLocation(null);
     }
   };
 
-  const handleCoordinateChange = (lat, lng) => {
-    setCurrentLocation({
-      ...currentLocation,
+  const onMapClick = (e) => {
+    const lat = e.latLng.lat();
+    const lng = e.latLng.lng();
+    
+    setCurrentLocation(prev => ({
+      ...prev,
       coordinates: [lng, lat]
+    }));
+    
+    setMapCenter({
+      lat,
+      lng
+    });
+
+    if (mapRef.current) {
+      mapRef.current.panTo({ lat, lng });
+    }
+  };
+
+  const handleMapLoad = (map) => {
+    mapRef.current = map;
+    setMapLoaded(true);
+    setMapLoadError(false);
+  };
+  const validateVideoFile = (file) => {
+  // Reset previous errors
+  setVideoError('');
+  
+  // 1. Check file type
+  const validTypes = ['video/mp4', 'video/quicktime', 'video/x-msvideo', 'video/x-matroska'];
+  if (!validTypes.includes(file.type)) {
+    setVideoError('Only video files are allowed');
+    return false;
+  }
+
+  // 2. Check file size (100MB max)
+  const maxSizeMB = 40;
+  const fileSizeMB = file.size / (1024 * 1024);
+  if (fileSizeMB > maxSizeMB) {
+    setVideoError(`File too large (max ${maxSizeMB}MB)`);
+    return false;
+  }
+
+  return true;
+};
+
+
+  const handleScriptError = () => {
+    setMapLoadError(true);
+    Swal.fire('Error', 'Failed to load Google Maps. Please try again later.', 'error');
+  };
+
+  const handleSearch = (value) => {
+    if (!window.google || !window.google.maps || !window.google.maps.places) {
+      return;
+    }
+
+    const service = new window.google.maps.places.AutocompleteService();
+    service.getPlacePredictions(
+      {
+        input: value,
+        types: ['geocode'],
+   
+      },
+      (predictions, status) => {
+        if (status === window.google.maps.places.PlacesServiceStatus.OK) {
+          setSearchResults(predictions || []);
+        } else {
+          setSearchResults([]);
+        }
+      }
+    );
+  };
+
+  const handlePlaceSelect = (description) => {
+    const geocoder = new window.google.maps.Geocoder();
+    geocoder.geocode({ address: description }, (results, status) => {
+      if (status === 'OK' && results[0]) {
+        const location = results[0].geometry.location;
+        const newCoords = [location.lng(), location.lat()];
+        
+        setCurrentLocation(prev => ({
+          ...prev,
+          coordinates: newCoords,
+        
+        }));
+        
+        setMapCenter({
+          lat: location.lat(),
+          lng: location.lng()
+        });
+
+        if (mapRef.current) {
+          mapRef.current.panTo(location);
+        }
+      }
     });
   };
 
@@ -156,12 +288,12 @@ const UploadVideo = () => {
       const fileExtension = fileName.split('.').pop();
       
       const uploadData = await getUploadUrl(dispatch, fileExtension);
-console.log("1")
+
       await fetch(uploadData.uploadURL, {
         method: "PUT",
         body: videoFile
       });
-console.log("2")
+
       const cleanUrl = new URL(uploadData.uploadURL);
       cleanUrl.search = "";
       const stringUrl = cleanUrl.toString();
@@ -177,10 +309,6 @@ console.log("2")
         thumbnailUrl.search = "";
         thumburl = thumbnailUrl.toString();
       }
-console.log("3")
-      // Prepare primary location data
-    
-    
 
       const videoData = {
         title: values.title,
@@ -200,9 +328,9 @@ console.log("3")
           }))
         }
       };
-console.log("4")
+
       await saveVideoDetails(dispatch, videoData);
-console.log("5")
+
       form.resetFields();
       setVideoFile(null);
       setThumbnailFile(null);
@@ -211,25 +339,24 @@ console.log("5")
       setPrimaryLocation(null);
 
       Swal.fire('Success!', 'Video uploaded successfully!', 'success');
+      navigate('/videos');
     } catch (error) {
       console.error('Error in video upload:', error);
       Swal.fire('Error!', 'Video upload failed. Please try again.', 'error');
+    } finally {
+      setIsLoading(false);
+   
     }
-    finally {
-      setIsLoading(false); // STOP LOADING
-    }
-  
   };
 
   return (
     <div className="p-6 bg-white rounded-lg shadow">
       <div className='flex justify-between'>
-      <h2 className="text-xl font-bold mb-6">Upload New Video</h2>
-      <Button type="default" onClick={() => navigate(-1)} className="bg-red-500 hover:bg-red-600">
-  ← Back
-</Button>
+        <h2 className="text-xl font-bold mb-6">Upload New Video</h2>
+        <Button type="default" onClick={() => navigate(-1)} className="bg-red-500 hover:bg-red-600">
+          ← Back
+        </Button>
       </div>
-   
       
       <Form form={form} layout="vertical" onFinish={handleSubmit}>
         <Form.Item name="title" label="Title" rules={[{ required: true }]}>
@@ -246,48 +373,46 @@ console.log("5")
             <Option value="Spanish">Spanish</Option>
             <Option value="French">French</Option>
             <Option value="German">German</Option>
-             <Option value="Italian">Italian</Option>
-                <Option value="Arabic">Arabic</Option>
-        
+            <Option value="Italian">Italian</Option>
+            <Option value="Arabic">Arabic</Option>
           </Select>
         </Form.Item>
 
         <Form.Item
-  label="Primary Location"
-  name="primaryLocation"  // important for Form values
-  rules={[{ required: true, message: "Please select a primary location" }]}
->
-  <Select
-    placeholder="Select a primary location"
-    onChange={(value) => {
-      setPrimaryLocation(value); // optional if you're manually tracking it
-      if (value && !isGeolocationEnabled) {
-        setIsGeolocationEnabled(true);
-      }
-    }}
-    allowClear
-    disabled={!allLocations.length}
-  >
-    {allLocations.map((location) => (
-      <Select.Option key={location._id} value={location.name}>
-        {location.name}
-      </Select.Option>
-    ))}
-  </Select>
-  {!allLocations.length && (
-    <p className="text-sm text-gray-500">No locations available. Add locations first.</p>
-  )}
-</Form.Item>
+          label="Primary Location"
+          name="primaryLocation"
+          rules={[{ required: true, message: "Please select a primary location" }]}
+        >
+          <Select
+            placeholder="Select a primary location"
+            onChange={(value) => {
+              setPrimaryLocation(value);
+              if (value && !isGeolocationEnabled) {
+                setIsGeolocationEnabled(true);
+              }
+            }}
+            allowClear
+            disabled={!allLocations.length}
+          >
+            {allLocations.map((location) => (
+              <Select.Option key={location._id} value={location.name}>
+                {location.name}
+              </Select.Option>
+            ))}
+          </Select>
+          {!allLocations.length && (
+            <p className="text-sm text-gray-500">No locations available. Add locations first.</p>
+          )}
+        </Form.Item>
 
-
-        <Form.Item label="Geolocation Restrictions">
+        {/* <Form.Item label="Geolocation Restrictions">
           <Switch 
             checked={isGeolocationEnabled}
             onChange={handleGeolocationToggle}
             checkedChildren="Enabled"
             unCheckedChildren="Disabled"
           />
-        </Form.Item>
+        </Form.Item> */}
 
         {isGeolocationEnabled && (
           <Form.Item label="Allowed Locations">
@@ -296,14 +421,14 @@ console.log("5")
                 <div key={i} className="p-3 mb-2 border rounded flex justify-between items-center">
                   <div>
                     <strong>{loc.locationName || 'Unnamed Location'}</strong>
-                    <div>Coordinates: {loc.coordinates[1]}, {loc.coordinates[0]}</div>
+                    <div>Coordinates: {loc.coordinates[1].toFixed(6)}, {loc.coordinates[0].toFixed(6)}</div>
                     <div>Radius: {loc.radius} meters</div>
-                    <Radio 
+                    {/* <Radio 
                       checked={primaryLocation === `custom-${i}`}
                       onChange={() => setPrimaryLocation(`custom-${i}`)}
                     >
                       Set as Primary Location
-                    </Radio>
+                    </Radio> */}
                   </div>
                   <Space>
                     <Button size="small" type="primary" onClick={() => showMapModal(i)}>Edit</Button>
@@ -318,30 +443,58 @@ console.log("5")
           </Form.Item>
         )}
 
-        <Form.Item label="Video File" required>
-          <Upload
-            ref={uploadRef}
-            beforeUpload={() => false}
-            onChange={handleVideoChange}
-            maxCount={1}
-            accept="video/*"
-          >
-            <Button icon={<UploadOutlined />}>Select Video</Button>
-          </Upload>
-          {videoFile && <div className="mt-2">Selected: {videoFile.name}</div>}
-        </Form.Item>
+     <Form.Item
+  label="Video File"
+  required
+  validateStatus={videoError ? "error" : ""}
+  help={videoError}
+>
+  <Upload
+    beforeUpload={(file) => {
+      if (!validateVideoFile(file)) {
+        return Upload.LIST_IGNORE; // Reject invalid files
+      }
+      setVideoFile(file);
+      return false; // Prevent automatic upload
+    }}
+    maxCount={1}
+    accept=".mp4,.mov,.avi,.mkv"
+    fileList={videoFile ? [videoFile] : []}
+    onRemove={() => setVideoFile(null)}
+  >
+    <Button icon={<UploadOutlined />}>Select Video</Button>
+  </Upload>
+  {videoFile && (
+    <div className="mt-2">
+      Selected: {videoFile.name} ({(videoFile.size / (1024 * 1024)).toFixed(1)}MB)
+    </div>
+  )}
+</Form.Item>
 
-        <Form.Item label="Thumbnail Image (Optional)">
-          <Upload
-            beforeUpload={() => false}
-            onChange={handleThumbnailChange}
-            maxCount={1}
-            accept="image/*"
-          >
-            <Button icon={<UploadOutlined />}>Select Thumbnail</Button>
-          </Upload>
-          {thumbnailFile && <div className="mt-2">Selected: {thumbnailFile.name}</div>}
-        </Form.Item>
+<Form.Item
+  label="Thumbnail Image "
+  validateStatus={thumbnailError ? "error" : ""}
+  help={thumbnailError || ""}
+>
+  <Upload
+    beforeUpload={(file) => {
+      const isImage = file.type.startsWith("image/");
+      if (!isImage) {
+        setThumbnailError("Only image files are allowed.");
+        return Upload.LIST_IGNORE;
+      }
+      setThumbnailError("");
+      return false; // Prevent automatic upload
+    }}
+    onChange={handleThumbnailChange}
+    maxCount={1}
+    accept="image/*"
+  >
+    <Button icon={<UploadOutlined />}>Select Thumbnail</Button>
+  </Upload>
+  {thumbnailFile && <div className="mt-2">Selected: {thumbnailFile.name}</div>}
+</Form.Item>
+
 
         {uploadProgress > 0 && uploadProgress < 100 && (
           <div className="mb-4">
@@ -357,7 +510,6 @@ console.log("5")
         </Form.Item>
       </Form>
 
-      {/* Map Modal */}
       <Modal
         title={currentLocation?.index !== undefined ? "Edit Location" : "Add New Location"}
         open={isMapModalVisible}
@@ -366,7 +518,7 @@ console.log("5")
         width={800}
       >
         <Form layout="vertical">
-          <Form.Item label="Location Name">
+          <Form.Item label="Location Name" required>
             <Input
               value={currentLocation?.locationName || ''}
               onChange={(e) => setCurrentLocation({ ...currentLocation, locationName: e.target.value })}
@@ -374,42 +526,101 @@ console.log("5")
             />
           </Form.Item>
 
+          <Form.Item label="Search Location">
+            <AutoComplete
+              options={searchResults.map(result => ({
+                value: result.description,
+                label: result.description
+              }))}
+              onSelect={handlePlaceSelect}
+              onSearch={handleSearch}
+              placeholder="Search for a location"
+              style={{ width: '100%' }}
+            />
+          </Form.Item>
+
           <Form.Item label="Radius (meters)">
             <InputNumber
-              min={1}
+              min={0}
               max={100000}
-              value={currentLocation?.radius || 1000}
+              value={currentLocation?.radius}
               onChange={(value) => setCurrentLocation({ ...currentLocation, radius: value })}
             />
           </Form.Item>
 
           <Form.Item label="Coordinates">
-            <div style={{ height: '400px', background: '#f0f0f0', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-              <div>
-                <p>Latitude: {currentLocation?.coordinates[1] || 0}</p>
-                <p>Longitude: {currentLocation?.coordinates[0] || 0}</p>
-                <Button type="primary" onClick={() => {
-                  const lat = Math.random() * 180 - 90;
-                  const lng = Math.random() * 360 - 180;
-                  handleCoordinateChange(lat, lng);
-                }}>
-                  Simulate Map Click
-                </Button>
-              </div>
+            <div style={{ height: '400px', position: 'relative' }}>
+              {mapLoadError ? (
+                <div className="text-center p-10">
+                  <p className="text-red-500">Failed to load map. Please refresh the page.</p>
+                  <Button 
+                    type="primary" 
+                    onClick={() => window.location.reload()}
+                    className="mt-4"
+                  >
+                    Reload Page
+                  </Button>
+                </div>
+              ) : (
+              
+                  <GoogleMap
+                    mapContainerStyle={mapContainerStyle}
+                    center={mapCenter}
+                    zoom={12}
+                    onClick={onMapClick}
+                    onLoad={handleMapLoad}
+                    options={{
+                      streetViewControl: true,
+                      mapTypeControl: true,
+                      fullscreenControl: true,
+                    }}
+                  >
+                    {currentLocation?.coordinates && (
+                      <MarkerF
+                        position={{
+                          lat: currentLocation.coordinates[1],
+                          lng: currentLocation.coordinates[0]
+                        }}
+                      />
+                    )}
+                    {currentLocation?.coordinates && currentLocation?.radius && (
+                      <CircleF
+                        center={{
+                          lat: currentLocation.coordinates[1],
+                          lng: currentLocation.coordinates[0]
+                        }}
+                        radius={currentLocation.radius}
+                        options={{
+                          fillColor: "#4285F4",
+                          fillOpacity: 0.2,
+                          strokeColor: "#4285F4",
+                          strokeOpacity: 0.8,
+                          strokeWeight: 2,
+                          clickable: false
+                        }}
+                      />
+                    )}
+                  </GoogleMap>
+                // </LoadScript>
+              )}
+            </div>
+            <div className="mt-2">
+              <p>Latitude: {currentLocation?.coordinates?.[1]?.toFixed(6) || 'Not set'}</p>
+              <p>Longitude: {currentLocation?.coordinates?.[0]?.toFixed(6) || 'Not set'}</p>
             </div>
           </Form.Item>
         </Form>
       </Modal>
+
       {isLoading && (
-  <div className="fixed inset-0 bg-white bg-opacity-70 z-50 flex items-center justify-center">
-    <div className="text-center">
-      <div className="spinner-border animate-spin inline-block w-8 h-8 border-4 rounded-full border-blue-500 border-t-transparent"></div>
-      <p className="mt-4 text-lg text-gray-700">Uploading, please wait...</p>
+        <div className="fixed inset-0 bg-white bg-opacity-70 z-50 flex items-center justify-center">
+          <div className="text-center">
+            <div className="spinner-border animate-spin inline-block w-8 h-8 border-4 rounded-full border-blue-500 border-t-transparent"></div>
+            <p className="mt-4 text-lg text-gray-700">Uploading, please wait...</p>
+          </div>
+        </div>
+      )}
     </div>
-  </div>
-)}
-    </div>
- 
   );
 };
 

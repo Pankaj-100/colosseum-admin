@@ -91,11 +91,7 @@ function Login() {
             {loading ? <Spinner size={20} /> : 'Login'}
           </button>
 
-          <div className="text-right">
-            <Link className="text-sm text-blue-500 hover:underline" to="#">
-              Forgot password?
-            </Link>
-          </div>
+      
         </div>
       </div>
     </div>

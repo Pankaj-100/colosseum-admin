@@ -11,20 +11,22 @@ import EditAdmin from './auth/EditAdmin';
 import ViewVideo from './pages/video/ViewVideo';
 import EditVideo from './pages/video/EditVideo';
 import TermsConditions from './pages/terms_conditions/TermsConditions';
-import PrivacyPolicy from './pages/privacy_policy/PrivacyPolicy';
 import VideosList from './pages/video/VideosList';
 import UploadVideo from './pages/video/UploadVideo';
 import Codes from './pages/code/Codes';
 import Location from './pages/location/Location';
-
-
+import { LoadScript, GoogleMap, MarkerF, CircleF } from '@react-google-maps/api';
 
 function App() {
   
-
+const libraries = ['places'];
   return (
     <>
-    
+        <LoadScript
+                  googleMapsApiKey="AIzaSyC1ApXdH8cT5dzZaRCyCdYOU_cu6o1dUZM"
+                  libraries={libraries}
+                  // onError={handleScriptError}
+                >
     <BrowserRouter>
     <Routes>
     
@@ -36,22 +38,23 @@ function App() {
 <Route path='/profile/edit' element={<ProtectedRoute children={<EditAdmin/>}/>}/>
 
 <Route path='/videos/:id' element={<ProtectedRoute children={<ViewVideo/>}/>}/>
+
 <Route path="/videos/edit/:id" element={<ProtectedRoute children={<EditVideo/>}/>}/>
 
 <Route path='/videos' element={<ProtectedRoute children={<VideosList/>}/>}/>
-<Route path='/videos/upload' element={<ProtectedRoute children={<UploadVideo/>}/>}/>
+<Route path='/videos/upload' element={  <ProtectedRoute children={<UploadVideo/>}/>}/>
+
 
 <Route path='/codes' element={<ProtectedRoute children={<Codes/>}/>}/>
 
 <Route path='/location' element={<ProtectedRoute children={<Location/>}/>}/>
 
-<Route path='/terms_conditions' element={<TermsConditions/>}/>
-<Route path='/privacy_policy' element={<PrivacyPolicy/>}/>
+<Route path='/term' element={<TermsConditions/>}/>
 <Route path='/' element={<Login/>}/>
     </Routes>
     
     </BrowserRouter>
-       
+       </LoadScript>
     </>
   )
 }

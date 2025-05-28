@@ -72,6 +72,7 @@ const [lang,setLang] = useState(language)
     key: '3',
     
   },
+  
 ];
   
   return (
@@ -104,6 +105,11 @@ const [lang,setLang] = useState(language)
 <Link to={'/location'}><li className={`flex items-center mb-4 hover:bg-gray-600 p-2 rounded cursor-pointer ${nav.includes('/location') && 'bg-gray-500'}`}>
   <BsGeoAltFill size={20} className="mr-2" />
   <span>Location</span>
+</li></Link>
+
+<Link to={'/term'}><li className={`flex items-center mb-4 hover:bg-gray-600 p-2 rounded cursor-pointer ${nav.includes('/term') && 'bg-gray-500'}`}>
+  <BsGeoAltFill size={20} className="mr-2" />
+  <span>Terms&Condition</span>
 </li></Link>
 
 
