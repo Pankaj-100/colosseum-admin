@@ -5,6 +5,8 @@ import store from "../store/store";
 
 const axiosInstance = axios.create({
   // baseURL: 'http://localhost:3000', 
+
+  
     baseURL: 'https://colosseum-backend.onrender.com', 
 });
 
