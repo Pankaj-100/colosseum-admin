@@ -23,7 +23,7 @@ const libraries = ['places'];
   return (
     <>
         <LoadScript
-                  googleMapsApiKey="AIzaSyC1ApXdH8cT5dzZaRCyCdYOU_cu6o1dUZM"
+                  googleMapsApiKey={import.meta.env.VITE_GOOGLE_MAPS_API_KEY}
                   libraries={libraries}
                   // onError={handleScriptError}
                 >
