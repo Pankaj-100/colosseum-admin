@@ -45,9 +45,9 @@ function EditTermsCondition({ onHide, isCreating, language, existingTerm }) {
   };
 
   const formats = [
-    "bold", "italic", "underline", "strike", "blockquote", "code-block",
-    "list", "bullet", "link", "image", "video", "font", "align", "color",
-    "background", "header", "indent", "size", "script", "clean", "code", "direction",
+    "bold", "italic", "underline", "strike", "blockquote", 
+    "list", "bullet", "link", "font", "align", "color",
+    "header", "indent", "size",  "clean",  "direction",
   ];
 
   useEffect(() => {
