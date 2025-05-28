@@ -30,7 +30,7 @@ function EditTermsCondition({ onHide, isCreating, language, existingTerm }) {
     toolbar: [
       [{ header: [1, 2, 3, 4, 5, 6, false] }],
       ["bold", "italic", "underline", "strike"],
-      ["link", "image", "video"],
+      ["link"],
       [{ list: "ordered" }, { list: "bullet" }],
       ["blockquote", "code-block"],
       [{ color: [] }, { background: [] }],
