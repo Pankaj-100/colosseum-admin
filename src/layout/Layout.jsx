@@ -18,7 +18,8 @@ import { AiOutlineProduct } from "react-icons/ai";
 import { TfiShoppingCart } from "react-icons/tfi";
 import { SiGnuprivacyguard } from "react-icons/si";
 import { BsFileEarmarkRuled } from "react-icons/bs";
-import { BsCameraVideo,BsGeoAltFill ,BsLockFill} from "react-icons/bs";
+import { BsCameraVideo,BsGeoAltFill ,BsLockFill,BsTabletFill} from "react-icons/bs";
+
 const Layout = ({ children }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
  
@@ -108,7 +109,7 @@ const [lang,setLang] = useState(language)
 </li></Link>
 
 <Link to={'/term'}><li className={`flex items-center mb-4 hover:bg-gray-600 p-2 rounded cursor-pointer ${nav.includes('/term') && 'bg-gray-500'}`}>
-  <BsGeoAltFill size={20} className="mr-2" />
+  <BsFileEarmarkRuled size={20} className="mr-2" />
   <span>Terms&Condition</span>
 </li></Link>
 

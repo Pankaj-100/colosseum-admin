@@ -129,19 +129,20 @@ const VideosList = () => {
         </div>
       )
     },
-    {
-      title: 'Duration',
-      key: 'duration',
-      render: (_, record) => (
-        <div>
-          <p className="text-xs text-gray-500">
-            {record.duration?.hours > 0 && `${record.duration.hours}h `}
-            {record.duration?.minutes > 0 && `${record.duration.minutes}m `}
-            {record.duration?.seconds > 0 && `${record.duration.seconds}s`}
-          </p>
-        </div>
-      ),
-    },
+    // {
+    //   title: 'Duration',
+    //   key: 'duration',
+    //   render: (_, record) => (
+    //     <div>
+    //       <p className="text-xs text-gray-500">
+            
+    //         {record.duration?.hours > 0 && `${record.duration.hours}h `}
+    //         {record.duration?.minutes > 0 && `${record.duration.minutes}m `}
+    //         {record.duration?.seconds > 0 && `${record.duration.seconds}s`}
+    //       </p>
+    //     </div>
+    //   ),
+    // },
     {
       title: 'Language',
       dataIndex: 'language',
