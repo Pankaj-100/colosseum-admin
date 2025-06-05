@@ -372,9 +372,12 @@ const [videoError, setVideoError] = useState('');
             <Option value="English">English</Option>
             <Option value="Spanish">Spanish</Option>
             <Option value="French">French</Option>
-            <Option value="German">German</Option>
+            <Option value="Deutsch">Deutsch</Option>
             <Option value="Italian">Italian</Option>
             <Option value="Arabic">Arabic</Option>
+             <Option value="Chinese">Chinese</Option>
+            <Option value="Japanese">Japanese</Option>
+            <Option value="Korean">Korean</Option>
           </Select>
         </Form.Item>
 
@@ -548,67 +551,119 @@ const [videoError, setVideoError] = useState('');
             />
           </Form.Item>
 
-          <Form.Item label="Coordinates">
-            <div style={{ height: '400px', position: 'relative' }}>
-              {mapLoadError ? (
-                <div className="text-center p-10">
-                  <p className="text-red-500">Failed to load map. Please refresh the page.</p>
-                  <Button 
-                    type="primary" 
-                    onClick={() => window.location.reload()}
-                    className="mt-4"
-                  >
-                    Reload Page
-                  </Button>
-                </div>
-              ) : (
-              
-                  <GoogleMap
-                    mapContainerStyle={mapContainerStyle}
-                    center={mapCenter}
-                    zoom={12}
-                    onClick={onMapClick}
-                    onLoad={handleMapLoad}
-                    options={{
-                      streetViewControl: true,
-                      mapTypeControl: true,
-                      fullscreenControl: true,
-                    }}
-                  >
-                    {currentLocation?.coordinates && (
-                      <MarkerF
-                        position={{
-                          lat: currentLocation.coordinates[1],
-                          lng: currentLocation.coordinates[0]
-                        }}
-                      />
-                    )}
-                    {currentLocation?.coordinates && currentLocation?.radius && (
-                      <CircleF
-                        center={{
-                          lat: currentLocation.coordinates[1],
-                          lng: currentLocation.coordinates[0]
-                        }}
-                        radius={currentLocation.radius}
-                        options={{
-                          fillColor: "#4285F4",
-                          fillOpacity: 0.2,
-                          strokeColor: "#4285F4",
-                          strokeOpacity: 0.8,
-                          strokeWeight: 2,
-                          clickable: false
-                        }}
-                      />
-                    )}
-                  </GoogleMap>
-                // </LoadScript>
-              )}
-            </div>
-            <div className="mt-2">
-              <p>Latitude: {currentLocation?.coordinates?.[1]?.toFixed(6) || 'Not set'}</p>
-              <p>Longitude: {currentLocation?.coordinates?.[0]?.toFixed(6) || 'Not set'}</p>
-            </div>
-          </Form.Item>
+     <Form.Item label="Coordinates">
+  <div style={{ height: '400px', position: 'relative' }}>
+    {mapLoadError ? (
+      <div className="text-center p-10">
+        <p className="text-red-500">Failed to load map. Please refresh the page.</p>
+        <Button 
+          type="primary" 
+          onClick={() => window.location.reload()}
+          className="mt-4"
+        >
+          Reload Page
+        </Button>
+      </div>
+    ) : (
+      <GoogleMap
+        mapContainerStyle={mapContainerStyle}
+        center={mapCenter}
+        zoom={12}
+        onClick={onMapClick}
+        onLoad={handleMapLoad}
+        options={{
+          streetViewControl: true,
+          mapTypeControl: true,
+          fullscreenControl: true,
+        }}
+      >
+        {currentLocation?.coordinates && (
+          <MarkerF
+            position={{
+              lat: currentLocation.coordinates[1],
+              lng: currentLocation.coordinates[0]
+            }}
+          />
+        )}
+        {currentLocation?.coordinates && currentLocation?.radius && (
+          <CircleF
+            center={{
+              lat: currentLocation.coordinates[1],
+              lng: currentLocation.coordinates[0]
+            }}
+            radius={currentLocation.radius}
+            options={{
+              fillColor: "#4285F4",
+              fillOpacity: 0.2,
+              strokeColor: "#4285F4",
+              strokeOpacity: 0.8,
+              strokeWeight: 2,
+              clickable: false
+            }}
+          />
+        )}
+      </GoogleMap>
+    )}
+  </div>
+  <div className="mt-2 grid grid-cols-2 gap-4">
+    <Form.Item label="Latitude">
+      <InputNumber
+        style={{ width: '100%' }}
+        value={currentLocation?.coordinates?.[1]}
+        onChange={(value) => {
+          const newLat = parseFloat(value);
+          if (!isNaN(newLat)) {
+            const newCoords = [currentLocation.coordinates[0], newLat];
+            setCurrentLocation(prev => ({
+              ...prev,
+              coordinates: newCoords
+            }));
+            
+            // Update map center and pan to new location
+            const newCenter = { lat: newLat, lng: currentLocation.coordinates[0] };
+            setMapCenter(newCenter);
+            
+            if (mapRef.current) {
+              mapRef.current.panTo(newCenter);
+              // Optional: You can also set zoom level if needed
+              // mapRef.current.setZoom(15);
+            }
+          }
+        }}
+        precision={6}
+        step={0.000001}
+      />
+    </Form.Item>
+    <Form.Item label="Longitude">
+      <InputNumber
+        style={{ width: '100%' }}
+        value={currentLocation?.coordinates?.[0]}
+        onChange={(value) => {
+          const newLng = parseFloat(value);
+          if (!isNaN(newLng)) {
+            const newCoords = [newLng, currentLocation.coordinates[1]];
+            setCurrentLocation(prev => ({
+              ...prev,
+              coordinates: newCoords
+            }));
+            
+            // Update map center and pan to new location
+            const newCenter = { lat: currentLocation.coordinates[1], lng: newLng };
+            setMapCenter(newCenter);
+            
+            if (mapRef.current) {
+              mapRef.current.panTo(newCenter);
+              // Optional: You can also set zoom level if needed
+              // mapRef.current.setZoom(15);
+            }
+          }
+        }}
+        precision={6}
+        step={0.000001}
+      />
+    </Form.Item>
+  </div>
+</Form.Item>
         </Form>
       </Modal>
 

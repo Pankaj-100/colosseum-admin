@@ -27,12 +27,15 @@ function Location() {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState(null);
   const [addModalOpen, setAddModalOpen] = useState(false);
+  const [editModalOpen, setEditModalOpen] = useState(false);
   const [thumbnailFile, setThumbnailFile] = useState(null);
+  const [editThumbnailFile, setEditThumbnailFile] = useState(null);
 
   const { locations, loading, count, search } = useSelector(state => state.location);
   const { contentlang } = useSelector(state => state.language);
 
   const [form] = Form.useForm();
+  const [editForm] = Form.useForm();
 
   useEffect(() => {
     getLocations(dispatch, search);
@@ -41,6 +44,15 @@ function Location() {
   const showDeleteModal = (location) => {
     setSelectedLocation(location);
     setIsDeleteModalOpen(true);
+  };
+
+  const showEditModal = (location) => {
+    setSelectedLocation(location);
+    editForm.setFieldsValue({
+      name: location.name,
+      size: location.size
+    });
+    setEditModalOpen(true);
   };
 
   const handleDelete = async () => {
@@ -60,6 +72,7 @@ function Location() {
   const handleAddLocation = async (values) => {
     const formData = new FormData();
     formData.append("name", values.name);
+    formData.append("size", values.size);
     if (thumbnailFile) {
       formData.append("thumbnail", thumbnailFile);
     }
@@ -83,6 +96,33 @@ function Location() {
     }
   };
 
+  const handleUpdateLocation = async (values) => {
+    const formData = new FormData();
+    formData.append("name", values.name);
+    formData.append("size", values.size);
+    if (editThumbnailFile) {
+      formData.append("thumbnail", editThumbnailFile);
+    }
+
+    try {
+      const { data } = await axiosInstance.put(`/api/location/${selectedLocation._id}`, formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+
+      if (data.success) {
+        Swal.fire("Updated!", "Location updated successfully.", "success");
+        editForm.resetFields();
+        setEditThumbnailFile(null);
+        setEditModalOpen(false);
+        getLocations(dispatch, search);
+      }
+    } catch (error) {
+      Swal.fire("Error!", error?.response?.data?.message || "Failed to update", "error");
+    }
+  };
+
   const columns = [
     {
       title: "S.N",
@@ -98,11 +138,19 @@ function Location() {
       dataIndex: "name",
     },
     {
+      title: "Size",
+      dataIndex: "size",
+    },
+    {
       title: "Actions",
       render: (_, record) => (
         <Space>
-          {/* <Link to={`/location/edit/${record._id}`}><MdModeEdit /></Link> */}
-          <span className="text-red-600 cursor-pointer" onClick={() => showDeleteModal(record)}><MdDelete /></span>
+          <span className="text-blue-600 cursor-pointer" onClick={() => showEditModal(record)}>
+            <MdModeEdit />
+          </span>
+          <span className="text-red-600 cursor-pointer" onClick={() => showDeleteModal(record)}>
+            <MdDelete />
+          </span>
         </Space>
       ),
     },
@@ -170,12 +218,22 @@ function Location() {
             name="name"
             rules={[{ required: true, message: 'Please enter location name' }]}
           >
-            <Input placeholder="Enter name"  />
+            <Input placeholder="Enter name" />
+          </Form.Item>
+
+          <Form.Item
+            label="Size"
+            name="size"
+            rules={[{ 
+              required: true, 
+              message: 'Please enter size (e.g., 50MB, 100MB, 1GB)' 
+            }]}
+          >
+            <Input placeholder="Enter size (e.g., 50MB, 100MB, 1GB)" />
           </Form.Item>
 
           <Form.Item
             label="Thumbnail Image"
-       
             rules={[{ required: true, message: 'Please upload a thumbnail image' }]}
           >
             <Upload
@@ -188,6 +246,62 @@ function Location() {
             >
               <Button icon={<UploadOutlined />}>Click to Upload</Button>
             </Upload>
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      {/* Edit Location Modal */}
+      <Modal
+        title="Edit Location"
+        open={editModalOpen}
+        onCancel={() => setEditModalOpen(false)}
+        onOk={() => editForm.submit()}
+        okText="Update"
+      >
+        <Form
+          form={editForm}
+          layout="vertical"
+          onFinish={handleUpdateLocation}
+        >
+          <Form.Item
+            label="Location Name"
+            name="name"
+            rules={[{ required: true, message: 'Please enter location name' }]}
+          >
+            <Input placeholder="Enter name" />
+          </Form.Item>
+
+          <Form.Item
+            label="Size"
+            name="size"
+            rules={[{ 
+              required: true, 
+              message: 'Please enter size (e.g., 50MB, 100MB, 1GB)' 
+            }]}
+          >
+            <Input placeholder="Enter size (e.g., 50MB, 100MB, 1GB)" />
+          </Form.Item>
+
+          <Form.Item
+            label="Thumbnail Image"
+          >
+            <Upload
+              beforeUpload={(file) => {
+                setEditThumbnailFile(file);
+                return false;
+              }}
+              accept="image/*"
+              maxCount={1}
+            >
+              <Button icon={<UploadOutlined />}>Click to Upload</Button>
+            </Upload>
+            {selectedLocation?.thumbnailUrl && (
+              <Image 
+                width={100} 
+                src={selectedLocation.thumbnailUrl} 
+                style={{ marginTop: 10 }}
+              />
+            )}
           </Form.Item>
         </Form>
       </Modal>

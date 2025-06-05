@@ -78,15 +78,17 @@ const [lang,setLang] = useState(language)
   
   return (
     <div className="flex h-screen">
+      
       {/* Sidebar (responsive) */}
       <div
         className={`fixed z-30 inset-y-0 left-0 w-64 transform ${
           isSidebarOpen ? "translate-x-0" : "-translate-x-full"
-        } md:translate-x-0 transition-transform duration-300 ease-in-out bg-gray-800 text-white p-4`}
+        } md:translate-x-0 transition-transform duration-300 ease-in-out bg-gray-800 text-white p-4  `}
       >
-        <h2 className="text-xl font-bold mb-6"> Colosseum ADMIN</h2>
+
+       <h2 className="text-xl font-bold mb-6 "> Colosseum World Admin Panel</h2>
         <ul>
-          
+           
           <Link to={'/dashboard'}><li className={  `flex items-center mb-4 hover:bg-gray-600 p-2 rounded cursor-pointer ${nav.includes('/dashboard') && 'bg-gray-500' } `  }> <MdOutlineDashboard size={20} className="mr-2" /> <span>{contentlang['dashboard']} </span></li></Link>
          
           <Link to={'/users'}><li className={`flex items-center mb-4 hover:bg-gray-600 p-2 rounded cursor-pointer ${nav.includes('/users') && 'bg-gray-500' }`}>
@@ -110,7 +112,7 @@ const [lang,setLang] = useState(language)
 
 <Link to={'/term'}><li className={`flex items-center mb-4 hover:bg-gray-600 p-2 rounded cursor-pointer ${nav.includes('/term') && 'bg-gray-500'}`}>
   <BsFileEarmarkRuled size={20} className="mr-2" />
-  <span>Terms&Condition</span>
+  <span>Terms & Condition</span>
 </li></Link>
 
 
@@ -119,9 +121,10 @@ const [lang,setLang] = useState(language)
       </div>
 
       {/* Main content */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col ">
         {/* Header (with toggle for mobile) */} 
         <header className="bg-gray-800 p-4 shadow-md flex items-center justify-between">
+          
           <button
             className="text-gray-200 "
             onClick={() => setIsSidebarOpen(!isSidebarOpen)}
@@ -141,12 +144,12 @@ const [lang,setLang] = useState(language)
               />
             </svg>
           </button>
-      
+   
        <div className='flex justify-end items-center'>
         {/* <h1 className='border border-gry-300 text-white px-2 py-0 mr-3 rounded cursor-pointer' onClick={langChange}>{lang == 'en' ? 'English':'Spanish'}</h1> */}
           {/* <h1 className='text-white mr-3'>{user.name}</h1> */}
           <Link to={'/profile'}>
-          
+
           </Link>
           <Dropdown
     menu={{

@@ -93,6 +93,11 @@ function Codes() {
     setCodeToRevoke(null);
   };
 
+  // Sort codes by createdAt in descending order (newest first)
+  const sortedCodes = [...codes].sort((a, b) => {
+    return new Date(b.createdAt) - new Date(a.createdAt);
+  });
+
   return (
     <Layout>
       <div className="flex justify-between items-center m-3">
@@ -131,7 +136,7 @@ function Codes() {
 
       <Table
         loading={loading}
-        dataSource={codes.map((item, index) => ({ ...item, key: item._id || index }))}
+        dataSource={sortedCodes.map((item, index) => ({ ...item, key: item._id || index }))}
         columns={columns}
         pagination={{
           pageSize,

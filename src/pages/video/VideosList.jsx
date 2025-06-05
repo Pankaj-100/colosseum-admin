@@ -241,7 +241,7 @@ const VideosList = () => {
     <Select.Option value="English">English</Select.Option>
     <Select.Option value="Spanish">Spanish</Select.Option>
     <Select.Option value="French">French</Select.Option>
-    <Select.Option value="German">German</Select.Option>
+    <Select.Option value="German">Deutsch</Select.Option>
     <Select.Option value="Italian">Italian</Select.Option>
     <Select.Option value="Arabic">Arabic</Select.Option>
     <Select.Option value="Chinese">Chinese</Select.Option>

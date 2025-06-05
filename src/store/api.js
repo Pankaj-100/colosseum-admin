@@ -200,7 +200,7 @@ export const addLocation = async (dispatch, formData) => {
     dispatch(locationError(error?.response?.data));
   }
 };
-
+  
 export const updateLocation = async (dispatch, id, formData) => {
   try {
     const { data } = await axiosInstance.put(`api/location/${id}`, formData, {
