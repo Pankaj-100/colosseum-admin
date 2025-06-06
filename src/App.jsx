@@ -16,6 +16,7 @@ import UploadVideo from './pages/video/UploadVideo';
 import Codes from './pages/code/Codes';
 import Location from './pages/location/Location';
 import { LoadScript, GoogleMap, MarkerF, CircleF } from '@react-google-maps/api';
+import ChangePassword from './pages/changepassword/ChangePassword';
 
 function App() {
   
@@ -43,11 +44,12 @@ const libraries = ['places'];
 
 <Route path='/videos' element={<ProtectedRoute children={<VideosList/>}/>}/>
 <Route path='/videos/upload' element={  <ProtectedRoute children={<UploadVideo/>}/>}/>
-
+<Route path='/change-password' element={<ProtectedRoute children={<ChangePassword/>}/>}/>
 
 <Route path='/codes' element={<ProtectedRoute children={<Codes/>}/>}/>
 
 <Route path='/location' element={<ProtectedRoute children={<Location/>}/>}/>
+
 
 <Route path='/term' element={<TermsConditions/>}/>
 <Route path='/' element={<Login/>}/>

@@ -354,4 +354,14 @@ export const getTermByLanguage = async ( language,dispatch) => {
     throw error;
   }
 };
-
+export const changePassword = async (dispatch, passwordData) => {
+  try {
+    const { data } = await axiosInstance.put('/api/admin/change-password', passwordData);
+    
+    Swal.fire('Success!', data.message || 'Password changed successfully.', 'success');
+    return data;
+  } catch (error) {
+    Swal.fire('Oops!', error?.response?.data?.message || 'Password change failed', 'error');
+    throw error;
+  }
+};
