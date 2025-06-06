@@ -121,7 +121,7 @@ function Codes() {
             Validity (Days)
           </label>
           <InputNumber
-            min={1}
+            min={7}
             value={validityDays}
             onChange={(val) => setValidityDays(val)}
             placeholder="e.g. 30"
