@@ -17,7 +17,7 @@ function Codes() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [codeToRevoke, setCodeToRevoke] = useState(null);
   const [generateCount, setGenerateCount] = useState(1);
-  const [validityDays, setValidityDays] = useState(1);
+  const [validityDays, setValidityDays] = useState(7);
 
   useEffect(() => {
     getActiveCodes(dispatch);
