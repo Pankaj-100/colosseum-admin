@@ -444,6 +444,7 @@ const UploadVideo = () => {
           label="Thumbnail Image"
           validateStatus={thumbnailError ? "error" : ""}
           help={thumbnailError || ""}
+          required
         >
           <Upload
             beforeUpload={(file) => {
