@@ -10,14 +10,12 @@ import {
   Switch,
   InputNumber,
   Space,
-  Radio,
   Upload,
   message,
 } from "antd";
 import { useNavigate, useParams } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
-import { getVideoDetails, getUploadUrl } from "../../store/api";
-import axiosInstance from "../../utils/axios";
+import { getVideoDetails, updateVideoDetails } from "../../store/api";
 import Swal from "sweetalert2";
 import {
   UploadOutlined,
@@ -34,7 +32,6 @@ import {
 const { TextArea } = Input;
 const { Option } = Select;
 
-// Google Maps configuration
 const mapContainerStyle = {
   width: "100%",
   height: "400px",
@@ -100,12 +97,8 @@ function EditVideo() {
     }
   }, [video]);
 
-  const handleThumbnailChange = async (info) => {
-    if (info.file.status === "removed") {
-      setThumbnailFile(null);
-      setForm((prev) => ({ ...prev, thumbnailUrl: video.thumbnailUrl }));
-      return;
-    }
+  const handleThumbnailChange = (info) => {
+
 
     const file = info.file;
 
@@ -123,36 +116,8 @@ function EditVideo() {
       return;
     }
 
-    try {
-      setUploadingThumbnail(true);
-      setThumbnailFile(file);
-
-      // Get upload URL from backend
-      const uploadData = await getUploadUrl(
-        dispatch,
-        file.name.split(".").pop()
-      );
-
-      // Upload the file to S3
-      await fetch(uploadData.uploadURL, {
-        method: "PUT",
-        body: file,
-      });
-
-      // Clean up the URL (remove query parameters)
-      const thumbnailUrl = new URL(uploadData.uploadURL);
-      thumbnailUrl.search = "";
-      const stringUrl = thumbnailUrl.toString();
-
-      // Update form with new thumbnail URL
-      setForm((prev) => ({ ...prev, thumbnailUrl: stringUrl }));
-      message.success("Thumbnail uploaded successfully!");
-    } catch (error) {
-      console.error("Error uploading thumbnail:", error);
-      message.error("Thumbnail upload failed.");
-    } finally {
-      setUploadingThumbnail(false);
-    }
+    setThumbnailFile(file);
+   
   };
 
   const handleGeolocationToggle = (checked) => {
@@ -224,43 +189,48 @@ function EditVideo() {
     }
   };
 
-  async function updateVideo() {
+  const handleSubmit = async () => {
     try {
       setLoading(true);
 
-      const updatedData = {
-        ...form,
-        geolocationSettings: {
-          isGeolocationEnabled,
-          locations,
-        },
-      };
-
-      const { data } = await axiosInstance.put(`api/video/${id}`, updatedData);
-      if (data.success) {
-        Swal.fire("Success!", "Video updated successfully", "success");
-        return true;
+      const formData = new FormData();
+      formData.append('title', form.title);
+      formData.append('description', form.description);
+      formData.append('language', form.language);
+      
+      if (thumbnailFile) {
+        formData.append('image', thumbnailFile);
       }
+
+      formData.append('geolocationSettings', JSON.stringify({
+        isGeolocationEnabled,
+        locations: locations.map(loc => ({
+          type: 'Point',
+          coordinates: loc.coordinates,
+          radius: loc.radius,
+          locationName: loc.locationName
+        }))
+      }));
+
+      await updateVideoDetails(dispatch, id, formData);
+
+      Swal.fire("Success!", "Video updated successfully", "success");
+      navigate("/videos");
     } catch (error) {
       Swal.fire(
         "Error!",
         error.response?.data?.message || "Something went wrong",
         "error"
       );
-      return false;
     } finally {
       setLoading(false);
     }
-  }
+  };
 
   const [isModalOpen, setIsModalOpen] = useState(true);
 
   const handleOk = async () => {
-    const success = await updateVideo();
-    if (success) {
-      setIsModalOpen(false);
-      navigate("/videos");
-    }
+    await handleSubmit();
   };
 
   const handleCancel = () => {
@@ -338,21 +308,28 @@ function EditVideo() {
               }
             >
               <Option value="English">English</Option>
-            <Option value="Spanish">Spanish</Option>
-            <Option value="French">French</Option>
-            <Option value="Deutsch">Deutsch</Option>
-            <Option value="Italian">Italian</Option>
-            <Option value="Arabic">Arabic</Option>
-             <Option value="Chinese">Chinese</Option>
-            <Option value="Japanese">Japanese</Option>
-            <Option value="Korean">Korean</Option>
+              <Option value="Spanish">Spanish</Option>
+              <Option value="French">French</Option>
+              <Option value="Deutsch">Deutsch</Option>
+              <Option value="Italian">Italian</Option>
+              <Option value="Arabic">Arabic</Option>
+              <Option value="Chinese">Chinese</Option>
+              <Option value="Japanese">Japanese</Option>
+              <Option value="Korean">Korean</Option>
             </Select>
           </Form.Item>
 
-     
+          <Form.Item label="Geolocation Restrictions">
+            <Switch 
+              checked={isGeolocationEnabled}
+              onChange={handleGeolocationToggle}
+              checkedChildren="Enabled"
+              unCheckedChildren="Disabled"
+            />
+          </Form.Item>
 
           {isGeolocationEnabled && (
-            <Form.Item label=" Locations">
+            <Form.Item label="Allowed Locations">
               <div className="mb-4">
                 {locations.map((loc, i) => (
                   <div
@@ -375,154 +352,159 @@ function EditVideo() {
                       >
                         Edit
                       </Button>
-                      {/* <Button
+                      <Button
                         size="small"
                         danger
                         icon={<DeleteOutlined />}
                         onClick={() => removeLocation(i)}
-                      /> */}
+                      />
                     </Space>
                   </div>
                 ))}
               </div>
+              <Button 
+                type="dashed" 
+                icon={<PlusOutlined />} 
+                onClick={() => showMapModal()}
+              >
+                Add Location
+              </Button>
             </Form.Item>
           )}
         </Form>
 
         {/* Map Modal */}
-       <Modal
-  title={currentLocation?.index !== null ? "Edit Location" : "Add New Location"}
-  open={isMapModalVisible}
-  onOk={handleMapOk}
-  onCancel={() => setIsMapModalVisible(false)}
-  width={800}
->
-  <Form layout="vertical">
-    <Form.Item label="Location Name" required>
-      <Input
-        value={currentLocation?.locationName || ""}
-        onChange={(e) =>
-          setCurrentLocation({
-            ...currentLocation,
-            locationName: e.target.value,
-          })
-        }
-        placeholder="Enter location name"
-      />
-    </Form.Item>
-
-    <Form.Item label="Radius (meters)">
-      <InputNumber
-        min={0}
-        max={100000}
-        value={currentLocation?.radius}
-        onChange={(value) =>
-          setCurrentLocation({ ...currentLocation, radius: value })
-        }
-      />
-    </Form.Item>
-
-    <Form.Item label="Coordinates">
-      <div style={{ height: "400px", position: "relative" }}>
-        <GoogleMap
-          mapContainerStyle={mapContainerStyle}
-          center={mapCenter}
-          zoom={12}
-          onClick={onMapClick}
-          onLoad={(map) => {
-            mapRef.current = map;
-          }}
-          options={{
-            streetViewControl: true,
-            mapTypeControl: true,
-            fullscreenControl: true,
-          }}
+        <Modal
+          title={currentLocation?.index !== null ? "Edit Location" : "Add New Location"}
+          open={isMapModalVisible}
+          onOk={handleMapOk}
+          onCancel={() => setIsMapModalVisible(false)}
+          width={800}
         >
-          {currentLocation?.coordinates && (
-            <MarkerF
-              position={{
-                lat: currentLocation.coordinates[1],
-                lng: currentLocation.coordinates[0],
-              }}
-            />
-          )}
+          <Form layout="vertical">
+            <Form.Item label="Location Name" required>
+              <Input
+                value={currentLocation?.locationName || ""}
+                onChange={(e) =>
+                  setCurrentLocation({
+                    ...currentLocation,
+                    locationName: e.target.value,
+                  })
+                }
+                placeholder="Enter location name"
+              />
+            </Form.Item>
 
-          {currentLocation?.coordinates && currentLocation?.radius && (
-            <CircleF
-              center={{
-                lat: currentLocation.coordinates[1],
-                lng: currentLocation.coordinates[0],
-              }}
-              radius={currentLocation.radius}
-              options={{
-                fillColor: "#4285F4",
-                fillOpacity: 0.2,
-                strokeColor: "#4285F4",
-                strokeOpacity: 0.8,
-                strokeWeight: 2,
-                clickable: false,
-              }}
-            />
-          )}
-        </GoogleMap>
-      </div>
-      <div className="mt-2 grid grid-cols-2 gap-4">
-        <Form.Item label="Latitude">
-          <InputNumber
-            style={{ width: '100%' }}
-            value={currentLocation?.coordinates?.[1]}
-            onChange={(value) => {
-              const newLat = parseFloat(value);
-              if (!isNaN(newLat)) {
-                const newCoords = [currentLocation.coordinates[0], newLat];
-                setCurrentLocation(prev => ({
-                  ...prev,
-                  coordinates: newCoords
-                }));
-                
-                // Update map center and pan to new location
-                const newCenter = { lat: newLat, lng: currentLocation.coordinates[0] };
-                setMapCenter(newCenter);
-                
-                if (mapRef.current) {
-                  mapRef.current.panTo(newCenter);
+            <Form.Item label="Radius (meters)">
+              <InputNumber
+                min={0}
+                max={100000}
+                value={currentLocation?.radius}
+                onChange={(value) =>
+                  setCurrentLocation({ ...currentLocation, radius: value })
                 }
-              }
-            }}
-            precision={6}
-            step={0.000001}
-          />
-        </Form.Item>
-        <Form.Item label="Longitude">
-          <InputNumber
-            style={{ width: '100%' }}
-            value={currentLocation?.coordinates?.[0]}
-            onChange={(value) => {
-              const newLng = parseFloat(value);
-              if (!isNaN(newLng)) {
-                const newCoords = [newLng, currentLocation.coordinates[1]];
-                setCurrentLocation(prev => ({
-                  ...prev,
-                  coordinates: newCoords
-                }));
-                
-                // Update map center and pan to new location
-                const newCenter = { lat: currentLocation.coordinates[1], lng: newLng };
-                setMapCenter(newCenter);
-                
-                if (mapRef.current) {
-                  mapRef.current.panTo(newCenter);
-                }
-              }
-            }}
-            precision={6}
-            step={0.000001}
-          />
-        </Form.Item>
-      </div>
-    </Form.Item>
-  </Form>
-</Modal>
+              />
+            </Form.Item>
+
+            <Form.Item label="Coordinates">
+              <div style={{ height: "400px", position: "relative" }}>
+                <GoogleMap
+                  mapContainerStyle={mapContainerStyle}
+                  center={mapCenter}
+                  zoom={12}
+                  onClick={onMapClick}
+                  onLoad={(map) => {
+                    mapRef.current = map;
+                  }}
+                  options={{
+                    streetViewControl: true,
+                    mapTypeControl: true,
+                    fullscreenControl: true,
+                  }}
+                >
+                  {currentLocation?.coordinates && (
+                    <MarkerF
+                      position={{
+                        lat: currentLocation.coordinates[1],
+                        lng: currentLocation.coordinates[0],
+                      }}
+                    />
+                  )}
+
+                  {currentLocation?.coordinates && currentLocation?.radius && (
+                    <CircleF
+                      center={{
+                        lat: currentLocation.coordinates[1],
+                        lng: currentLocation.coordinates[0],
+                      }}
+                      radius={currentLocation.radius}
+                      options={{
+                        fillColor: "#4285F4",
+                        fillOpacity: 0.2,
+                        strokeColor: "#4285F4",
+                        strokeOpacity: 0.8,
+                        strokeWeight: 2,
+                        clickable: false,
+                      }}
+                    />
+                  )}
+                </GoogleMap>
+              </div>
+              <div className="mt-2 grid grid-cols-2 gap-4">
+                <Form.Item label="Latitude">
+                  <InputNumber
+                    style={{ width: '100%' }}
+                    value={currentLocation?.coordinates?.[1]}
+                    onChange={(value) => {
+                      const newLat = parseFloat(value);
+                      if (!isNaN(newLat)) {
+                        const newCoords = [currentLocation.coordinates[0], newLat];
+                        setCurrentLocation(prev => ({
+                          ...prev,
+                          coordinates: newCoords
+                        }));
+                        
+                        const newCenter = { lat: newLat, lng: currentLocation.coordinates[0] };
+                        setMapCenter(newCenter);
+                        
+                        if (mapRef.current) {
+                          mapRef.current.panTo(newCenter);
+                        }
+                      }
+                    }}
+                    precision={6}
+                    step={0.000001}
+                  />
+                </Form.Item>
+                <Form.Item label="Longitude">
+                  <InputNumber
+                    style={{ width: '100%' }}
+                    value={currentLocation?.coordinates?.[0]}
+                    onChange={(value) => {
+                      const newLng = parseFloat(value);
+                      if (!isNaN(newLng)) {
+                        const newCoords = [newLng, currentLocation.coordinates[1]];
+                        setCurrentLocation(prev => ({
+                          ...prev,
+                          coordinates: newCoords
+                        }));
+                        
+                        const newCenter = { lat: currentLocation.coordinates[1], lng: newLng };
+                        setMapCenter(newCenter);
+                        
+                        if (mapRef.current) {
+                          mapRef.current.panTo(newCenter);
+                        }
+                      }
+                    }}
+                    precision={6}
+                    step={0.000001}
+                  />
+                </Form.Item>
+              </div>
+            </Form.Item>
+          </Form>
+        </Modal>
       </Modal>
     </Layout>
   );

@@ -1,155 +1,117 @@
-
 import axios from 'axios';
 import axiosInstance from '../utils/axios';
 import { loginError, setToken, setUser, startLogin } from './authSlice';
 import { errorDashboard, fetchedDashboard, fetchingDashboard } from './dashboardSlice';
 import { fetchingUser, fetchUserById, userError, userFetched } from './userSlice';
-import { LiaDiaspora } from 'react-icons/lia';
 import Swal from 'sweetalert2';
-import { useNavigate } from 'react-router-dom';
 
-import { fetchedTerms, fetchingTerms, termsError,fetchedTermByLanguage ,fetchedTermById,termDeleted,termSaved } from './termsConditionsSlice';
-import {  fetchingVideos,fetchVideoById,
+import { 
+  fetchedTerms, 
+  fetchingTerms, 
+  termsError,
+  fetchedTermByLanguage,
+  fetchedTermById,
+  termDeleted,
+  termSaved 
+} from './termsConditionsSlice';
+
+import {  
+  fetchingVideos,
+  fetchVideoById,
   fetchedVideos,
   videoError,
   startUpload,
-  setUploadUrl,
-  setUploadId,
-  setVideoKey,
   uploadComplete,
-  resetUploadState } from './videoSlice';
-  import {
-    fetchingLocations,
-    fetchedLocations,
-    locationError,
-    locationDeleted,
-    locationAdded,
-    locationUpdated,
-  } from './locationSlice';
- 
-  import {
-    fetchingCodes,
-    fetchedCodes,
-    codeError,
-    codeRevoked,
-  } from "./codeSlice";
-  
-   
+  resetUploadState 
+} from './videoSlice';
 
+import {
+  fetchingLocations,
+  fetchedLocations,
+  locationError,
+  locationDeleted,
+  locationAdded,
+  locationUpdated,
+} from './locationSlice';
 
+import {
+  fetchingCodes,
+  fetchedCodes,
+  codeError,
+  codeRevoked,
+} from "./codeSlice";
 
-
+// Auth functions
 export const login = async (dispatch, admin) => {
   const { email, password } = admin;
   dispatch(startLogin());
 
   try {
     const { data } = await axiosInstance.post('api/admin/login', { email, password });
-    dispatch(setUser(data)); // If login is successful
+    dispatch(setUser(data));
     dispatch(setToken(data));
     localStorage.setItem('token', JSON.stringify(data.token));
     localStorage.setItem('admin', JSON.stringify(data.user));
-    window.location.href = '/dashboard'; // Redirect on successful login
+    window.location.href = '/dashboard';
   } catch (error) {
-    // Ensure the backend sends an appropriate error response
- 
-    
     const errorMessage = error?.response?.data?.error?.message || 'Login failed';
     dispatch(loginError({ message: errorMessage }));
   }
 };
 
-
-
+// Dashboard functions
 export const getDashboard = async (dispatch) => {
   try {
-    dispatch(fetchingDashboard())
-    const { data } = await axiosInstance.get('api/admin/getDashboardData')
-    dispatch(fetchedDashboard(data))  
+    dispatch(fetchingDashboard());
+    const { data } = await axiosInstance.get('api/admin/getDashboardData');
+    dispatch(fetchedDashboard(data));  
   } catch (error) {
-   // Swal.fire('Opps!', error?.response?.data?.message, 'error')
-    dispatch(errorDashboard(error?.response?.data))
-  }
-}
-
-export const getUsers = async (dispatch,search,token)=>{
-  try {
-     dispatch(fetchingUser())
-     const {data} = await axiosInstance.get(`api/admin/get_AllUsers?search=${search}`);
-
-     
-     dispatch(userFetched(data))
-  } catch (error) {
-    Swal.fire('Opps!',error?.response?.data?.message,'error')
-     dispatch(userError(error?.response?.data))
-  }
-}
-
-export const getUserDetails =async (dispatch,id)=>{
-  try {
-    dispatch(fetchingUser())
-    const {data} = await axiosInstance(`api/admin/user_details/${id}`)
-    dispatch(fetchUserById(data))
-  } catch (error) {
-    Swal.fire('Opps!',error?.response?.data?.message,'error')
-     dispatch(userError(error?.response?.data))
-  }
-}
-
-
-// Video API functions
-export const getVideos = async (dispatch) => {
-  try {
-    dispatch(fetchingVideos());
-    const { data } = await axiosInstance.get('api/video');
- 
-  console.log(data.totalVideos)
-    dispatch(fetchedVideos(data));
-  } catch (error) {
-    Swal.fire('Error!', error?.response?.data?.message, 'error');
-   // dispatch(videoError(error?.response?.data));
+    dispatch(errorDashboard(error?.response?.data));
   }
 };
 
-export const getVideoDetails = async (dispatch, id) => {
+// User functions
+export const getUsers = async (dispatch, search) => {
   try {
-  
-    const { data } = await axiosInstance.get(`api/video/${id}`);
-    console.log('API Response:', data);
-    
-    // Dispatch with the correct payload structure
-    dispatch(fetchVideoById(data.data)); 
-    
+    dispatch(fetchingUser());
+    const { data } = await axiosInstance.get(`api/admin/get_AllUsers?search=${search}`);
+    dispatch(userFetched(data));
   } catch (error) {
-    console.error('Error fetching video:', error);
-    Swal.fire('Error!', error?.response?.data?.message || 'Failed to fetch video', 'error');
-    dispatch(videoError(error?.response?.data?.message || 'Failed to fetch video'));
-  } 
+    Swal.fire('Opps!', error?.response?.data?.message, 'error');
+    dispatch(userError(error?.response?.data));
+  }
 };
 
-export const getUploadUrl = async (dispatch, fileExtension) => {
+export const getUserDetails = async (dispatch, id) => {
+  try {
+    dispatch(fetchingUser());
+    const { data } = await axiosInstance(`api/admin/user_details/${id}`);
+    dispatch(fetchUserById(data));
+  } catch (error) {
+    Swal.fire('Opps!', error?.response?.data?.message, 'error');
+    dispatch(userError(error?.response?.data));
+  }
+};
+
+// Video functions
+
+export const uploadVideo = async (dispatch, formData) =>  {
   try {
     dispatch(startUpload());
-    const { data } = await axiosInstance.post('api/video/get-upload-url', { 
-      videoExtension: fileExtension 
+    
+    const { data } = await axiosInstance.post('api/video', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      },
+      onUploadProgress: (progressEvent) => {
+        const progress = Math.round(
+          (progressEvent.loaded * 100) / progressEvent.total
+        );
+        // Dispatch progress updates if needed
+      }
     });
-    dispatch(setUploadUrl(data.data.uploadURL));
-    dispatch(setVideoKey(data.data.key));
-    return data.data;
-  } catch (error) {
-    Swal.fire('Error!', error?.response?.data?.message, 'error');
-    // dispatch(videoError(error?.response?.data));
-    throw error;
-  }
-};
 
-export const saveVideoDetails = async (dispatch, videoData) => {
-  try {
-    dispatch(startUpload());
-    console.log("55")
-    const { data } = await axiosInstance.post('api/video/save', videoData);
-      console.log("55")
-    Swal.fire('Success!', 'Video saved successfully', 'success');
+    Swal.fire('Success!', 'Video uploaded successfully', 'success');
     dispatch(uploadComplete());
     dispatch(resetUploadState());
     return data;
@@ -160,27 +122,59 @@ export const saveVideoDetails = async (dispatch, videoData) => {
   }
 };
 
-export const initiateMultipartUpload = async (dispatch, fileExtension) => {
+export const getVideos = async (dispatch) => {
   try {
-    dispatch(startUpload());
-    const { data } = await axiosInstance.post('/uploads/generate-urls', { 
-      videoExtension: fileExtension 
-    });
-    dispatch(setUploadId(data.data.uploadId));
-    dispatch(setVideoKey(data.data.key));
-    return data.data;
+    dispatch(fetchingVideos());
+    const { data } = await axiosInstance.get('api/video');
+    console.log(data.data)
+    dispatch(fetchedVideos(data));
+  } catch (error) {
+    Swal.fire('Error!', error?.response?.data?.message, 'error');
+    dispatch(videoError(error?.response?.data));
+  }
+};
+
+export const getVideoDetails = async (dispatch, id) => {
+  try {
+    const { data } = await axiosInstance.get(`api/video/${id}`);
+    dispatch(fetchVideoById(data.data));
+  } catch (error) {
+    Swal.fire('Error!', error?.response?.data?.message || 'Failed to fetch video', 'error');
+    dispatch(videoError(error?.response?.data?.message || 'Failed to fetch video'));
+  }
+};
+
+export const saveVideoDetails = async (dispatch, videoData) => {
+  try {
+    const { data } = await axiosInstance.post('api/video/save', videoData);
+    Swal.fire('Success!', 'Video details saved successfully', 'success');
+    return data;
   } catch (error) {
     Swal.fire('Error!', error?.response?.data?.message, 'error');
     dispatch(videoError(error?.response?.data));
     throw error;
   }
 };
+export const updateVideoDetails = async (dispatch, id, formData) => {
+  try {
+    const { data } = await axiosInstance.put(`api/video/${id}`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
+    return data;
+  } catch (error) {
+    throw error;
+  }
+};
 
-// Add to your existing api.js file
-export const getLocations = async (dispatch) => {
+
+export const getLocations = async (dispatch, search = "") => {
   try {
     dispatch(fetchingLocations());
-    const { data } = await axiosInstance.get('api/location');
+    const { data } = await axiosInstance.get('api/location', {
+      params: { search }
+    });
     dispatch(fetchedLocations(data.locations));
   } catch (error) {
     Swal.fire('Error!', error?.response?.data?.message, 'error');
@@ -193,24 +187,28 @@ export const addLocation = async (dispatch, formData) => {
     const { data } = await axiosInstance.post('api/location', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
-    dispatch(locationAdded(data.location));
-    Swal.fire('Success!', 'Location added.', 'success');
+    dispatch(locationAdded(data.data));
+    Swal.fire('Success!', 'Location added successfully', 'success');
+    return data;
   } catch (error) {
     Swal.fire('Error!', error?.response?.data?.message, 'error');
     dispatch(locationError(error?.response?.data));
+    throw error;
   }
 };
-  
+
 export const updateLocation = async (dispatch, id, formData) => {
   try {
     const { data } = await axiosInstance.put(`api/location/${id}`, formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
-    dispatch(locationUpdated(data.location));
-    Swal.fire('Success!', 'Location updated.', 'success');
+    dispatch(locationUpdated(data.data));
+    Swal.fire('Success!', 'Location updated successfully', 'success');
+    return data;
   } catch (error) {
     Swal.fire('Error!', error?.response?.data?.message, 'error');
     dispatch(locationError(error?.response?.data));
+    throw error;
   }
 };
 
@@ -218,15 +216,14 @@ export const deleteLocation = async (dispatch, id) => {
   try {
     await axiosInstance.delete(`api/location/${id}`);
     dispatch(locationDeleted(id));
-    Swal.fire('Success!', 'Location deleted.', 'success');
+    Swal.fire('Success!', 'Location deleted successfully', 'success');
   } catch (error) {
     Swal.fire('Error!', error?.response?.data?.message, 'error');
     dispatch(locationError(error?.response?.data));
+    throw error;
   }
 };
-
-
-// 1. Fetch active codes (with optional search)
+// Code functions
 export const getActiveCodes = async (dispatch, search = "") => {
   try {
     dispatch(fetchingCodes());
@@ -238,26 +235,24 @@ export const getActiveCodes = async (dispatch, search = "") => {
   }
 };
 
-// 2. Generate new activation codes
 export const generateCodes = async (dispatch, payload) => {
   try {
     dispatch(fetchingCodes());
     const { data } = await axiosInstance.post("api/code/generate", payload);
     Swal.fire("Success!", `${data.count} codes generated.`, "success");
-    await getActiveCodes(dispatch); // Refresh code list
+    await getActiveCodes(dispatch);
   } catch (error) {
     Swal.fire("Oops!", error?.response?.data?.message, "error");
     dispatch(codeError(error?.response?.data));
   }
 };
 
-// 3. Revoke code by plainCode
 export const revokeCode = async (dispatch, plainCode) => {
   try {
     await axiosInstance.delete("api/code/revoke", {
       data: { plainCode },
     });
-    dispatch(codeRevoked(plainCode)); // Match by decryptedCode
+    dispatch(codeRevoked(plainCode));
     Swal.fire("Success!", "Code revoked.", "success");
   } catch (error) {
     Swal.fire("Oops!", error?.response?.data?.message, "error");
@@ -265,8 +260,7 @@ export const revokeCode = async (dispatch, plainCode) => {
   }
 };
 
-
-// Terms & Conditions API functions (updated to match other APIs)
+// Terms & Conditions functions
 export const fetchAllTerms = async (dispatch) => {
   try {
     dispatch(fetchingTerms());
@@ -277,32 +271,27 @@ export const fetchAllTerms = async (dispatch) => {
     dispatch(termsError(error?.response?.data));
   }
 };
+
 export const createTerm = async (termData, dispatch) => {
   try {
-
     dispatch(fetchingTerms());
     const { data } = await axiosInstance.post('api/terms', termData);
     
-    console.log("heelo");
-    
     if (!data.success) {
-   
       throw new Error(data.message);
     }
     
     dispatch(termSaved(data.data));
     Swal.fire('Success!', 'Terms created successfully', 'success');
     return data.data;
-    
   } catch (error) {
-   
     Swal.fire('Error!', error.response.data.message || 'Failed to create terms', 'error');
     dispatch(termsError(error.response.data.message));
     throw error;
   }
 };
 
-export const getTermById = async (id,dispatch) => {
+export const getTermById = async (id, dispatch) => {
   try {
     dispatch(fetchingTerms());
     const { data } = await axiosInstance.get(`api/terms/${id}`);
@@ -315,7 +304,7 @@ export const getTermById = async (id,dispatch) => {
   }
 };
 
-export const updateTerm = async ( id, termData,dispatch) => {
+export const updateTerm = async (id, termData, dispatch) => {
   try {
     dispatch(fetchingTerms());
     const { data } = await axiosInstance.put(`api/terms/${id}`, termData);
@@ -329,7 +318,7 @@ export const updateTerm = async ( id, termData,dispatch) => {
   }
 };
 
-export const deleteTerm = async ( id,dispatch) => {
+export const deleteTerm = async (id, dispatch) => {
   try {
     dispatch(fetchingTerms());
     await axiosInstance.delete(`api/terms/${id}`);
@@ -342,7 +331,7 @@ export const deleteTerm = async ( id,dispatch) => {
   }
 };
 
-export const getTermByLanguage = async ( language,dispatch) => {
+export const getTermByLanguage = async (language, dispatch) => {
   try {
     dispatch(fetchingTerms());
     const { data } = await axiosInstance.get(`api/terms/language/${language}`);
@@ -354,10 +343,10 @@ export const getTermByLanguage = async ( language,dispatch) => {
     throw error;
   }
 };
+
 export const changePassword = async (dispatch, passwordData) => {
   try {
     const { data } = await axiosInstance.put('/api/admin/change-password', passwordData);
-    
     Swal.fire('Success!', data.message || 'Password changed successfully.', 'success');
     return data;
   } catch (error) {

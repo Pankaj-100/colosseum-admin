@@ -10,8 +10,7 @@ import SearchBar from '../../component/SearchBar';
 import Skeleton from 'react-loading-skeleton';
 import Swal from 'sweetalert2';
 import axios from "axios";
-import axiosInstance from '../../utils/axios'; // update path as needed
-
+import axiosInstance from '../../utils/axios';
 
 const VideosList = () => {
   const [locations, setLocations] = useState([]);
@@ -24,30 +23,31 @@ const VideosList = () => {
   useEffect(() => {
     const fetchLocations = async () => {
       try {
-        const { data } = await axios.get('https://colosseum-backend.onrender.com/api/location'); 
-        setLocations(data.locations); 
+        const { data } = await axios.get('http://localhost:3000/api/location'); 
+        setLocations(data?.locations || []); 
       } catch (error) {
         console.error("Failed to fetch locations:", error);
+        setLocations([]);
       }
     };
 
-
-
     fetchLocations();
-
   }, []);
 
-  const getLocationNameById = (id) => {
-    const location = locations.find(loc => loc._id === id);
-    return location?.name || 'Unknown Location';
-  };
-
+const getLocationNameById = (locationValue) => {
+  if (!locationValue) return 'Unknown Location';
+  
+  const locationId = typeof locationValue === 'object' ? locationValue._id : locationValue;
+  const location = locations.find(loc => loc._id === locationId);
+  
+  return location?.name || 'Unknown Location';
+};
   const [pageSize, setPageSize] = useState(5);
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const [videoId, setVideoId] = useState();
   const { token } = useSelector(state => state.auth);
-  const { videos, loading, count } = useSelector(state => state.video);
+  const { videos = [], loading, count } = useSelector(state => state.video);
   const { contentlang } = useSelector(state => state.language);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [video, setVideo] = useState({});
@@ -55,28 +55,32 @@ const VideosList = () => {
 
   // Apply filters whenever searchName, selectedLanguage, selectedLocation or videos change
   useEffect(() => {
-    let result = videos;
+    let result = Array.isArray(videos) ? [...videos] : [];
     
     if (searchName) {
       result = result.filter(video => 
-        video.title.toLowerCase().includes(searchName.toLowerCase())
+        video?.title?.toLowerCase().includes(searchName.toLowerCase())
       );
     }
     
     if (selectedLanguage) {
-      result = result.filter(video => video.language === selectedLanguage);
+      result = result.filter(video => video?.language === selectedLanguage);
     }
     
-    if (selectedLocation) {
-      result = result.filter(video => video.primaryLocation === selectedLocation);
-    }
+  if (selectedLocation) {
+  result = result.filter(video => {
+    const locationId = typeof video.primaryLocation === 'object' ? video.primaryLocation._id : video.primaryLocation;
+    return locationId === selectedLocation;
+  });
+}
+
     
     setFilteredVideos(result);
   }, [searchName, selectedLanguage, selectedLocation, videos]);
 
   const columns = [
     {
-      title: contentlang['S_n'],
+      title: contentlang['S_n'] || 'S/N',
       dataIndex: 'sn',
       key: 'sn',
       width: 50,
@@ -101,7 +105,7 @@ const VideosList = () => {
       key: 'title',
       render: (text) => (
         <div>
-          <h1>{text}</h1>
+          <h1>{text || 'No title'}</h1>
         </div>
       )
     },
@@ -129,20 +133,6 @@ const VideosList = () => {
         </div>
       )
     },
-    // {
-    //   title: 'Duration',
-    //   key: 'duration',
-    //   render: (_, record) => (
-    //     <div>
-    //       <p className="text-xs text-gray-500">
-            
-    //         {record.duration?.hours > 0 && `${record.duration.hours}h `}
-    //         {record.duration?.minutes > 0 && `${record.duration.minutes}m `}
-    //         {record.duration?.seconds > 0 && `${record.duration.seconds}s`}
-    //       </p>
-    //     </div>
-    //   ),
-    // },
     {
       title: 'Language',
       dataIndex: 'language',
@@ -154,7 +144,7 @@ const VideosList = () => {
       )
     },
     {
-      title: contentlang['action'],
+      title: contentlang['action'] || 'Action',
       key: 'action',
       render: (_, record) => (
         <Space size="middle">
@@ -170,10 +160,10 @@ const VideosList = () => {
     setIsModalOpen(true);
     try {
       const { data } = await axiosInstance.get(`api/video/${id}`);
-      setVideoId(data.video);
+      setVideo(data?.video || {});
       setVideoId(id);
     } catch (error) {
-      Swal.fire('Opps!', error?.response?.data);
+      Swal.fire('Opps!', error?.response?.data?.message || 'Failed to load video');
     }
   };
 
@@ -181,25 +171,24 @@ const VideosList = () => {
     setIsModalOpen(false);
     try {
       const { data } = await axiosInstance.delete(`api/video/${videoId}`);
-      if (data.success) {
+      if (data?.success) {
         Swal.fire('Congrats!', 'Video deleted successfully', 'success').then(() => {
           getVideos(dispatch, search, token);
         });
       }
     } catch (error) {
-      Swal.fire('Opps!', 'Something went wrong', 'error');
+      Swal.fire('Opps!', error?.response?.data?.message || 'Something went wrong', 'error');
     }
     navigate('/videos');
   };
 
   const handleCancel = () => {
     setIsModalOpen(false);
-    navigate('/videos');
   };
 
   useEffect(() => {
     getVideos(dispatch, search);
-  }, []);
+  }, [dispatch, search]);
 
   return (
     <Layout>
@@ -227,28 +216,28 @@ const VideosList = () => {
             />
           </div>
           
-       <div>
-  <label className="block text-sm font-medium text-gray-700 mb-1">
-    Filter by Language
-  </label>
-  <Select
-    style={{ width: '100%' }}
-    placeholder="Select language"
-    allowClear
-     value={selectedLanguage}
-    onChange={(value) => setSelectedLanguage(value)}
-  >
-    <Select.Option value="English">English</Select.Option>
-    <Select.Option value="Spanish">Spanish</Select.Option>
-    <Select.Option value="French">French</Select.Option>
-    <Select.Option value="German">Deutsch</Select.Option>
-    <Select.Option value="Italian">Italian</Select.Option>
-    <Select.Option value="Arabic">Arabic</Select.Option>
-    <Select.Option value="Chinese">Chinese</Select.Option>
-    <Select.Option value="Japanese">Japanese</Select.Option>
-    <Select.Option value="Korean">Korean</Select.Option>
-  </Select>
-</div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Filter by Language
+            </label>
+            <Select
+              style={{ width: '100%' }}
+              placeholder="Select language"
+              allowClear
+              value={selectedLanguage}
+              onChange={(value) => setSelectedLanguage(value)}
+            >
+              <Select.Option value="English">English</Select.Option>
+              <Select.Option value="Spanish">Spanish</Select.Option>
+              <Select.Option value="French">French</Select.Option>
+              <Select.Option value="German">Deutsch</Select.Option>
+              <Select.Option value="Italian">Italian</Select.Option>
+              <Select.Option value="Arabic">Arabic</Select.Option>
+              <Select.Option value="Chinese">Chinese</Select.Option>
+              <Select.Option value="Japanese">Japanese</Select.Option>
+              <Select.Option value="Korean">Korean</Select.Option>
+            </Select>
+          </div>
           
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Filter by Location</label>
@@ -259,7 +248,7 @@ const VideosList = () => {
               value={selectedLocation}
               onChange={(value) => setSelectedLocation(value)}
             >
-              {locations.map(loc => (
+              {Array.isArray(locations) && locations.map(loc => (
                 <Select.Option key={loc._id} value={loc._id}>
                   {loc.name}
                 </Select.Option>
@@ -287,7 +276,7 @@ const VideosList = () => {
           <>
             <Table 
               columns={columns} 
-              dataSource={filteredVideos.map((item, index) => ({ ...item, key: item.id || index }))} 
+              dataSource={filteredVideos.map((item, index) => ({ ...item, key: item._id || index }))} 
               rowKey="key" 
               pagination={{
                 pageSize: pageSize, 
@@ -312,7 +301,7 @@ const VideosList = () => {
 
       <div>
         <Modal title="Delete Video" onOk={handleOk} onCancel={handleCancel} open={isModalOpen}>
-          <h1>Are you sure want to delete <span className="font-bold">{video?.title}</span>?</h1>
+          <h1>Are you sure want to delete <span className="font-bold">{video?.title || 'this video'}</span>?</h1>
         </Modal>
       </div>
     </Layout>

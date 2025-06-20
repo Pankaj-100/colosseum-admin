@@ -2,11 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { Spin } from 'antd';
-import {
-  getUploadUrl,
-  saveVideoDetails,
-  getLocations
-} from '../../store/api';
+import { uploadVideo, getLocations } from '../../store/api';
 import {
   Button,
   Form,
@@ -51,7 +47,7 @@ const UploadVideo = () => {
   const { locations: allLocations } = useSelector(state => state.location);
   const [form] = Form.useForm();
   const [videoFile, setVideoFile] = useState(null);
-const [videoError, setVideoError] = useState('');
+  const [videoError, setVideoError] = useState('');
   const [thumbnailFile, setThumbnailFile] = useState(null);
   const [duration, setDuration] = useState({ hours: 0, minutes: 0, seconds: 0 });
   const [isGeolocationEnabled, setIsGeolocationEnabled] = useState(true);
@@ -86,6 +82,9 @@ const [videoError, setVideoError] = useState('');
     }
 
     const file = info.file;
+    if (!validateVideoFile(file)) {
+      return;
+    }
     setVideoFile(file);
 
     const videoElement = document.createElement("video");
@@ -112,7 +111,35 @@ const [videoError, setVideoError] = useState('');
       setThumbnailFile(null);
       return;
     }
-    setThumbnailFile(info.file);
+    
+    const file = info.file;
+    const isImage = file.type.startsWith("image/");
+    if (!isImage) {
+      setThumbnailError("Only image files are allowed");
+      return;
+    }
+    
+    setThumbnailError("");
+    setThumbnailFile(file);
+  };
+
+  const validateVideoFile = (file) => {
+    setVideoError('');
+    
+    const validTypes = ['video/mp4', 'video/quicktime', 'video/x-msvideo', 'video/x-matroska'];
+    if (!validTypes.includes(file.type)) {
+      setVideoError('Only MP4, MOV, AVI, or MKV files are allowed');
+      return false;
+    }
+
+    const maxSizeMB = 50;
+    const fileSizeMB = file.size / (1024 * 1024);
+    if (fileSizeMB > maxSizeMB) {
+      setVideoError(`File too large (max ${maxSizeMB}MB)`);
+      return false;
+    }
+
+    return true;
   };
 
   const handleGeolocationToggle = (checked) => {
@@ -201,28 +228,6 @@ const [videoError, setVideoError] = useState('');
     setMapLoaded(true);
     setMapLoadError(false);
   };
-  const validateVideoFile = (file) => {
-  // Reset previous errors
-  setVideoError('');
-  
-  // 1. Check file type
-  const validTypes = ['video/mp4', 'video/quicktime', 'video/x-msvideo', 'video/x-matroska'];
-  if (!validTypes.includes(file.type)) {
-    setVideoError('Only video files are allowed');
-    return false;
-  }
-
-  // 2. Check file size (100MB max)
-  const maxSizeMB = 40;
-  const fileSizeMB = file.size / (1024 * 1024);
-  if (fileSizeMB > maxSizeMB) {
-    setVideoError(`File too large (max ${maxSizeMB}MB)`);
-    return false;
-  }
-
-  return true;
-};
-
 
   const handleScriptError = () => {
     setMapLoadError(true);
@@ -239,7 +244,6 @@ const [videoError, setVideoError] = useState('');
       {
         input: value,
         types: ['geocode'],
-   
       },
       (predictions, status) => {
         if (status === window.google.maps.places.PlacesServiceStatus.OK) {
@@ -261,7 +265,6 @@ const [videoError, setVideoError] = useState('');
         setCurrentLocation(prev => ({
           ...prev,
           coordinates: newCoords,
-        
         }));
         
         setMapCenter({
@@ -283,53 +286,31 @@ const [videoError, setVideoError] = useState('');
     }
 
     try {
-      setIsLoading(true); 
-      const fileName = videoFile.name;
-      const fileExtension = fileName.split('.').pop();
+      setIsLoading(true);
       
-      const uploadData = await getUploadUrl(dispatch, fileExtension);
-
-      await fetch(uploadData.uploadURL, {
-        method: "PUT",
-        body: videoFile
-      });
-
-      const cleanUrl = new URL(uploadData.uploadURL);
-      cleanUrl.search = "";
-      const stringUrl = cleanUrl.toString();
-
-      let thumburl = "";
+      const formData = new FormData();
+      formData.append('video', videoFile || videoFile);
+      formData.append('title', values.title);
+      formData.append('description', values.description);
+      formData.append('language', values.language);
+      formData.append('primaryLocation', values.primaryLocation);
+      formData.append('duration', JSON.stringify(duration));
+      
       if (thumbnailFile) {
-        const thumbnailUploadData = await getUploadUrl(dispatch, 'jpg');
-        await fetch(thumbnailUploadData.uploadURL, {
-          method: "PUT",
-          body: thumbnailFile
-        });
-        const thumbnailUrl = new URL(thumbnailUploadData.uploadURL);
-        thumbnailUrl.search = "";
-        thumburl = thumbnailUrl.toString();
+        formData.append('image', thumbnailFile || thumbnailFile);
       }
 
-      const videoData = {
-        title: values.title,
-        description: values.description,
-        thumbnailUrl: thumburl,
-        videoUrl: stringUrl,
-        language: values.language,
-        duration,
-        primaryLocation: values.primaryLocation,
-        geolocationSettings: {
-          isGeolocationEnabled,
-          locations: locations.map(loc => ({
-            type: 'Point',
-            coordinates: loc.coordinates,
-            radius: loc.radius,
-            locationName: loc.locationName
-          }))
-        }
-      };
+      formData.append('geolocationSettings', JSON.stringify({
+        isGeolocationEnabled,
+        locations: locations.map(loc => ({
+          type: 'Point',
+          coordinates: loc.coordinates,
+          radius: loc.radius,
+          locationName: loc.locationName
+        }))
+      }));
 
-      await saveVideoDetails(dispatch, videoData);
+      await uploadVideo(dispatch, formData);
 
       form.resetFields();
       setVideoFile(null);
@@ -342,10 +323,9 @@ const [videoError, setVideoError] = useState('');
       navigate('/videos');
     } catch (error) {
       console.error('Error in video upload:', error);
-      Swal.fire('Error!', 'Video upload failed. Please try again.', 'error');
+      Swal.fire('Error!', error.message || 'Video upload failed. Please try again.', 'error');
     } finally {
       setIsLoading(false);
-   
     }
   };
 
@@ -375,7 +355,7 @@ const [videoError, setVideoError] = useState('');
             <Option value="Deutsch">Deutsch</Option>
             <Option value="Italian">Italian</Option>
             <Option value="Arabic">Arabic</Option>
-             <Option value="Chinese">Chinese</Option>
+            <Option value="Chinese">Chinese</Option>
             <Option value="Japanese">Japanese</Option>
             <Option value="Korean">Korean</Option>
           </Select>
@@ -408,15 +388,6 @@ const [videoError, setVideoError] = useState('');
           )}
         </Form.Item>
 
-        {/* <Form.Item label="Geolocation Restrictions">
-          <Switch 
-            checked={isGeolocationEnabled}
-            onChange={handleGeolocationToggle}
-            checkedChildren="Enabled"
-            unCheckedChildren="Disabled"
-          />
-        </Form.Item> */}
-
         {isGeolocationEnabled && (
           <Form.Item label="Allowed Locations">
             <div className="mb-4">
@@ -426,12 +397,6 @@ const [videoError, setVideoError] = useState('');
                     <strong>{loc.locationName || 'Unnamed Location'}</strong>
                     <div>Coordinates: {loc.coordinates[1].toFixed(6)}, {loc.coordinates[0].toFixed(6)}</div>
                     <div>Radius: {loc.radius} meters</div>
-                    {/* <Radio 
-                      checked={primaryLocation === `custom-${i}`}
-                      onChange={() => setPrimaryLocation(`custom-${i}`)}
-                    >
-                      Set as Primary Location
-                    </Radio> */}
                   </div>
                   <Space>
                     <Button size="small" type="primary" onClick={() => showMapModal(i)}>Edit</Button>
@@ -446,58 +411,59 @@ const [videoError, setVideoError] = useState('');
           </Form.Item>
         )}
 
-     <Form.Item
-  label="Video File"
-  required
-  validateStatus={videoError ? "error" : ""}
-  help={videoError}
->
-  <Upload
-    beforeUpload={(file) => {
-      if (!validateVideoFile(file)) {
-        return Upload.LIST_IGNORE; // Reject invalid files
-      }
-      setVideoFile(file);
-      return false; // Prevent automatic upload
-    }}
-    maxCount={1}
-    accept=".mp4,.mov,.avi,.mkv"
-    fileList={videoFile ? [videoFile] : []}
-    onRemove={() => setVideoFile(null)}
-  >
-    <Button icon={<UploadOutlined />}>Select Video</Button>
-  </Upload>
-  {videoFile && (
-    <div className="mt-2">
-      Selected: {videoFile.name} ({(videoFile.size / (1024 * 1024)).toFixed(1)}MB)
-    </div>
-  )}
-</Form.Item>
+        <Form.Item
+          label="Video File"
+          required
+          validateStatus={videoError ? "error" : ""}
+          help={videoError}
+        >
+          <Upload
+            beforeUpload={(file) => {
+              const isValid = validateVideoFile(file);
+              if (isValid) {
+                setVideoFile(file);
+              }
+              return false;
+            }}
+            onChange={handleVideoChange}
+            maxCount={1}
+            accept=".mp4,.mov,.avi,.mkv"
+            fileList={videoFile ? [videoFile] : []}
+            onRemove={() => setVideoFile(null)}
+          >
+            <Button icon={<UploadOutlined />}>Select Video</Button>
+          </Upload>
+          {videoFile && (
+            <div className="mt-2">
+              Selected: {videoFile.name} ({(videoFile.size / (1024 * 1024)).toFixed(1)}MB)
+            </div>
+          )}
+        </Form.Item>
 
-<Form.Item
-  label="Thumbnail Image "
-  validateStatus={thumbnailError ? "error" : ""}
-  help={thumbnailError || ""}
->
-  <Upload
-    beforeUpload={(file) => {
-      const isImage = file.type.startsWith("image/");
-      if (!isImage) {
-        setThumbnailError("Only image files are allowed.");
-        return Upload.LIST_IGNORE;
-      }
-      setThumbnailError("");
-      return false; // Prevent automatic upload
-    }}
-    onChange={handleThumbnailChange}
-    maxCount={1}
-    accept="image/*"
-  >
-    <Button icon={<UploadOutlined />}>Select Thumbnail</Button>
-  </Upload>
-  {thumbnailFile && <div className="mt-2">Selected: {thumbnailFile.name}</div>}
-</Form.Item>
-
+        <Form.Item
+          label="Thumbnail Image"
+          validateStatus={thumbnailError ? "error" : ""}
+          help={thumbnailError || ""}
+        >
+          <Upload
+            beforeUpload={(file) => {
+              const isImage = file.type.startsWith("image/");
+              if (!isImage) {
+                setThumbnailError("Only image files are allowed");
+                return Upload.LIST_IGNORE;
+              }
+              setThumbnailError("");
+              return false;
+            }}
+            onChange={handleThumbnailChange}
+            maxCount={1}
+            accept="image/*"
+            fileList={thumbnailFile ? [thumbnailFile] : []}
+            onRemove={() => setThumbnailFile(null)}
+          >
+            <Button icon={<UploadOutlined />}>Select Thumbnail</Button>
+          </Upload>
+        </Form.Item>
 
         {uploadProgress > 0 && uploadProgress < 100 && (
           <div className="mb-4">
@@ -507,7 +473,7 @@ const [videoError, setVideoError] = useState('');
         )}
 
         <Form.Item>
-          <Button type="primary" htmlType="submit" loading={uploadProgress > 0}>
+          <Button type="primary" htmlType="submit" loading={isLoading}>
             Upload Video
           </Button>
         </Form.Item>
@@ -551,119 +517,113 @@ const [videoError, setVideoError] = useState('');
             />
           </Form.Item>
 
-     <Form.Item label="Coordinates">
-  <div style={{ height: '400px', position: 'relative' }}>
-    {mapLoadError ? (
-      <div className="text-center p-10">
-        <p className="text-red-500">Failed to load map. Please refresh the page.</p>
-        <Button 
-          type="primary" 
-          onClick={() => window.location.reload()}
-          className="mt-4"
-        >
-          Reload Page
-        </Button>
-      </div>
-    ) : (
-      <GoogleMap
-        mapContainerStyle={mapContainerStyle}
-        center={mapCenter}
-        zoom={12}
-        onClick={onMapClick}
-        onLoad={handleMapLoad}
-        options={{
-          streetViewControl: true,
-          mapTypeControl: true,
-          fullscreenControl: true,
-        }}
-      >
-        {currentLocation?.coordinates && (
-          <MarkerF
-            position={{
-              lat: currentLocation.coordinates[1],
-              lng: currentLocation.coordinates[0]
-            }}
-          />
-        )}
-        {currentLocation?.coordinates && currentLocation?.radius && (
-          <CircleF
-            center={{
-              lat: currentLocation.coordinates[1],
-              lng: currentLocation.coordinates[0]
-            }}
-            radius={currentLocation.radius}
-            options={{
-              fillColor: "#4285F4",
-              fillOpacity: 0.2,
-              strokeColor: "#4285F4",
-              strokeOpacity: 0.8,
-              strokeWeight: 2,
-              clickable: false
-            }}
-          />
-        )}
-      </GoogleMap>
-    )}
-  </div>
-  <div className="mt-2 grid grid-cols-2 gap-4">
-    <Form.Item label="Latitude">
-      <InputNumber
-        style={{ width: '100%' }}
-        value={currentLocation?.coordinates?.[1]}
-        onChange={(value) => {
-          const newLat = parseFloat(value);
-          if (!isNaN(newLat)) {
-            const newCoords = [currentLocation.coordinates[0], newLat];
-            setCurrentLocation(prev => ({
-              ...prev,
-              coordinates: newCoords
-            }));
-            
-            // Update map center and pan to new location
-            const newCenter = { lat: newLat, lng: currentLocation.coordinates[0] };
-            setMapCenter(newCenter);
-            
-            if (mapRef.current) {
-              mapRef.current.panTo(newCenter);
-              // Optional: You can also set zoom level if needed
-              // mapRef.current.setZoom(15);
-            }
-          }
-        }}
-        precision={6}
-        step={0.000001}
-      />
-    </Form.Item>
-    <Form.Item label="Longitude">
-      <InputNumber
-        style={{ width: '100%' }}
-        value={currentLocation?.coordinates?.[0]}
-        onChange={(value) => {
-          const newLng = parseFloat(value);
-          if (!isNaN(newLng)) {
-            const newCoords = [newLng, currentLocation.coordinates[1]];
-            setCurrentLocation(prev => ({
-              ...prev,
-              coordinates: newCoords
-            }));
-            
-            // Update map center and pan to new location
-            const newCenter = { lat: currentLocation.coordinates[1], lng: newLng };
-            setMapCenter(newCenter);
-            
-            if (mapRef.current) {
-              mapRef.current.panTo(newCenter);
-              // Optional: You can also set zoom level if needed
-              // mapRef.current.setZoom(15);
-            }
-          }
-        }}
-        precision={6}
-        step={0.000001}
-      />
-    </Form.Item>
-  </div>
-</Form.Item>
+          <Form.Item label="Coordinates">
+            <div style={{ height: '400px', position: 'relative' }}>
+              {mapLoadError ? (
+                <div className="text-center p-10">
+                  <p className="text-red-500">Failed to load map. Please refresh the page.</p>
+                  <Button 
+                    type="primary" 
+                    onClick={() => window.location.reload()}
+                    className="mt-4"
+                  >
+                    Reload Page
+                  </Button>
+                </div>
+              ) : (
+                <GoogleMap
+                  mapContainerStyle={mapContainerStyle}
+                  center={mapCenter}
+                  zoom={12}
+                  onClick={onMapClick}
+                  onLoad={handleMapLoad}
+                  options={{
+                    streetViewControl: true,
+                    mapTypeControl: true,
+                    fullscreenControl: true,
+                  }}
+                >
+                  {currentLocation?.coordinates && (
+                    <MarkerF
+                      position={{
+                        lat: currentLocation.coordinates[1],
+                        lng: currentLocation.coordinates[0]
+                      }}
+                    />
+                  )}
+                  {currentLocation?.coordinates && currentLocation?.radius && (
+                    <CircleF
+                      center={{
+                        lat: currentLocation.coordinates[1],
+                        lng: currentLocation.coordinates[0]
+                      }}
+                      radius={currentLocation.radius}
+                      options={{
+                        fillColor: "#4285F4",
+                        fillOpacity: 0.2,
+                        strokeColor: "#4285F4",
+                        strokeOpacity: 0.8,
+                        strokeWeight: 2,
+                        clickable: false
+                      }}
+                    />
+                  )}
+                </GoogleMap>
+              )}
+            </div>
+            <div className="mt-2 grid grid-cols-2 gap-4">
+              <Form.Item label="Latitude">
+                <InputNumber
+                  style={{ width: '100%' }}
+                  value={currentLocation?.coordinates?.[1]}
+                  onChange={(value) => {
+                    const newLat = parseFloat(value);
+                    if (!isNaN(newLat)) {
+                      const newCoords = [currentLocation.coordinates[0], newLat];
+                      setCurrentLocation(prev => ({
+                        ...prev,
+                        coordinates: newCoords
+                      }));
+                      
+                      const newCenter = { lat: newLat, lng: currentLocation.coordinates[0] };
+                      setMapCenter(newCenter);
+                      
+                      if (mapRef.current) {
+                        mapRef.current.panTo(newCenter);
+                      }
+                    }
+                  }}
+                  precision={6}
+                  step={0.000001}
+                />
+              </Form.Item>
+              <Form.Item label="Longitude">
+                <InputNumber
+                  style={{ width: '100%' }}
+                  value={currentLocation?.coordinates?.[0]}
+                  onChange={(value) => {
+                    const newLng = parseFloat(value);
+                    if (!isNaN(newLng)) {
+                      const newCoords = [newLng, currentLocation.coordinates[1]];
+                      setCurrentLocation(prev => ({
+                        ...prev,
+                        coordinates: newCoords
+                      }));
+                      
+                      const newCenter = { lat: currentLocation.coordinates[1], lng: newLng };
+                      setMapCenter(newCenter);
+                      
+                      if (mapRef.current) {
+                        mapRef.current.panTo(newCenter);
+                      }
+                    }
+                  }}
+                  precision={6}
+                  step={0.000001}
+                />
+              </Form.Item>
+            </div>
+          </Form.Item>
         </Form>
       </Modal>
 

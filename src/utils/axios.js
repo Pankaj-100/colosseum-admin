@@ -4,10 +4,10 @@ import axios from "axios";
 import store from "../store/store"; 
 
 const axiosInstance = axios.create({
-  // baseURL: 'http://localhost:3000', 
+  baseURL: 'http://localhost:3000', 
 
   
-    baseURL: 'https://colosseum-backend.onrender.com', 
+    // baseURL: 'https://colosseum-backend.onrender.com', 
 });
 
 // Add a request interceptor to dynamically add the token
