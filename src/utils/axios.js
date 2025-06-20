@@ -7,7 +7,7 @@ const axiosInstance = axios.create({
   // baseURL: 'http://localhost:3000', 
 
   
-    baseURL: 'https://colosseum-backend.onrender.com', 
+    baseURL: 'https://www.colosseumworld.com', 
 });
 
 // Add a request interceptor to dynamically add the token
