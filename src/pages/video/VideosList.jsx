@@ -23,7 +23,7 @@ const VideosList = () => {
   useEffect(() => {
     const fetchLocations = async () => {
       try {
-        const { data } = await axios.get('http://localhost:3000/api/location'); 
+        const { data } = await axios.get('https://colosseum-backend.onrender.com/api/location'); 
         setLocations(data?.locations || []); 
       } catch (error) {
         console.error("Failed to fetch locations:", error);
