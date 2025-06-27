@@ -22,14 +22,14 @@ function Dashboard() {
           type={'users'} 
           count={totalUsers}  // Pass the count directly
           icon={<CgProfile size={30} />} 
-          title={'users'}
+          title={'Users'}
           loading={loading}
         />
            <DashCard 
           type={'videos'} 
           count={totalVideos}  // Pass the count directly
           icon={<CgCamera size={30} />} 
-          title={'videos'}
+          title={'Videos'}
           loading={loading}
         />
        
