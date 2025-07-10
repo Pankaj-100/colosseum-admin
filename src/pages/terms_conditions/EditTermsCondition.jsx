@@ -23,6 +23,9 @@ function EditTermsCondition({ onHide, isCreating, language, existingTerm }) {
        { value: 'Chinese', label: 'Chinese' },
     { value: 'Japanese', label: 'Japanese' },
     { value: 'Korean', label: 'Korean' },
+        { value: 'Portuguese', label: 'Portuguese' },
+    { value: 'Russian', label: 'Russian' },
+    { value: 'Hindi', label: 'Hindi' },
     // Add more languages as needed
   ];
 

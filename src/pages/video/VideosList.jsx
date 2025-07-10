@@ -236,6 +236,9 @@ const getLocationNameById = (locationValue) => {
               <Select.Option value="Chinese">Chinese</Select.Option>
               <Select.Option value="Japanese">Japanese</Select.Option>
               <Select.Option value="Korean">Korean</Select.Option>
+              <Select.Option value="Portuguese">Portuguese</Select.Option>
+              <Select.Option value="Russian">Russian</Select.Option>
+              <Select.Option value="Hindi">Hindi</Select.Option>
             </Select>
           </div>
           

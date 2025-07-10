@@ -358,6 +358,9 @@ const UploadVideo = () => {
             <Option value="Chinese">Chinese</Option>
             <Option value="Japanese">Japanese</Option>
             <Option value="Korean">Korean</Option>
+             <Option value="Portuguese">Portuguese</Option>
+            <Option value="Russian">Russian</Option>
+            <Option value="Hindi">Hindi</Option>
           </Select>
         </Form.Item>
 
